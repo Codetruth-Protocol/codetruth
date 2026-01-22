@@ -14,6 +14,7 @@ use ctp_policy::PolicyEngine;
 
 use crate::error::{CTPError, CTPResult};
 use crate::models::*;
+use crate::detectors::DetectorsRegistry;
 use crate::naming_patterns::{NamingPatternDetector, NamingAnalysisResult};
 
 struct IntentInferenceResult {
@@ -74,6 +75,7 @@ pub struct CodeTruthEngine {
     drift_detector: DriftDetector,
     policy_engine: Arc<RwLock<PolicyEngine>>,
     naming_detector: Arc<RwLock<NamingPatternDetector>>,
+    detectors: DetectorsRegistry,
 }
 
 impl CodeTruthEngine {
@@ -92,6 +94,7 @@ impl CodeTruthEngine {
         let drift_detector = DriftDetector::new(DriftConfig::default());
         let policy_engine = Arc::new(RwLock::new(PolicyEngine::new()));
         let naming_detector = Arc::new(RwLock::new(NamingPatternDetector::new()));
+        let detectors = DetectorsRegistry::new();
         
         Self {
             config,
@@ -99,6 +102,7 @@ impl CodeTruthEngine {
             drift_detector,
             policy_engine,
             naming_detector,
+            detectors,
         }
     }
 
@@ -246,7 +250,7 @@ impl CodeTruthEngine {
             &side_effect_strs,
         );
         
-        let drift = DriftAnalysis {
+        let mut drift = DriftAnalysis {
             drift_detected: drift_report.drift_detected,
             drift_severity: match drift_report.overall_severity {
                 ctp_drift::DriftSeverity::None => DriftSeverity::None,
@@ -282,6 +286,14 @@ impl CodeTruthEngine {
                 })
                 .collect(),
         };
+
+        // Run singular adapter detectors and append any implementation drift details
+        let detector_details = self.detectors.run(&path.display().to_string(), &content);
+        if !detector_details.is_empty() {
+            drift.drift_detected = true;
+            drift.drift_details.extend(detector_details);
+            // Severity unchanged here; policy engine can escalate via violations.
+        }
 
         // Evaluate policies
         let policy_results = {

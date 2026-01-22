@@ -1,0 +1,39 @@
+ctp_version: "1.0.0"
+policy_schema_version: "1.0.0"
+policy:
+  id: "duplication.function_name_similarity"
+  name: "Function Name and Implementation Similarity"
+  description: |
+    Detects functions with similar names and similar implementations.
+    Common examples: formatFileSize, formatFileBytes, formatBytes
+    doing the exact same thing in different ways.
+  scope:
+    include:
+      - "**/*.{py,js,ts,rs,go,java,php,rb}"
+    exclude:
+      - "**/tests/**"
+      - "**/test/**"
+      - "**/spec/**"
+      - "**/vendor/**"
+      - "**/node_modules/**"
+  severity: "WARNING"
+  rules:
+    - rule_id: "function-name-similarity"
+      type: "behavior_pattern"
+      detector: "function_name_similarity"
+      requires:
+        - pattern: "function|def |fn |pub fn |func "
+          context: ""
+          must_exist: false
+      params:
+        name_similarity_threshold: 0.8
+        implementation_similarity_threshold: 0.85
+        levenshtein_distance_max: 3
+        check_same_directory: true
+        check_cross_directory: false
+      violation_message: "Functions with similar names and implementations detected: {functions}. Consider consolidating into a single function."
+      remediation: |
+        Consolidate into a single function with a clear, unique name.
+        If functions serve different purposes, rename them to reflect their differences.
+  enforcement:
+    block_merge: false

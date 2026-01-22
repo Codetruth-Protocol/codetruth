@@ -1,0 +1,32 @@
+ctp_version: "1.0.0"
+policy_schema_version: "1.0.0"
+policy:
+  id: "duplication.basic"
+  name: "Basic Code Duplication Detection"
+  description: |
+    Basic duplication detection for exact or near-exact code matches.
+    For more sophisticated semantic similarity analysis, see duplication-semantic.yaml
+  scope:
+    include:
+      - "**/*.{py,js,ts,rs,go,java,php,rb}"
+    exclude:
+      - "**/tests/**"
+      - "**/vendor/**"
+      - "**/node_modules/**"
+  severity: "WARNING"
+  rules:
+    - rule_id: "basic-duplication"
+      type: "behavior_pattern"
+      detector: "basic_duplication"
+      requires:
+        - pattern: "function|def |fn |pub fn |func "
+          context: ""
+          must_exist: false
+      params:
+        min_duplicate_lines: 10
+        exact_match_only: false
+        ignore_whitespace: true
+      violation_message: "Potential code duplication detected: {similarity}% match between {file1} and {file2}"
+      remediation: "Consolidate similar code blocks into a shared utility or function."
+  enforcement:
+    block_merge: false

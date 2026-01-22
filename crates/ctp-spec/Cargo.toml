@@ -16,6 +16,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 chrono = "0.4"
+ctp-utils = { path = "../ctp-utils" }
 
 # Internal crates
 ctp-core = { path = "../ctp-core" }

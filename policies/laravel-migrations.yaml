@@ -1,0 +1,37 @@
+ctp_version: "1.0.0"
+policy_schema_version: "1.0.0"
+policy:
+  id: "laravel.migrations.timestamp_monotonic"
+  name: "Laravel Migration Timestamps Must Be Monotonic"
+  description: |
+    Ensures all migration timestamps are:
+    1. Generated via artisan make:migration (not manually created)
+    2. Monotonically increasing (no out-of-order timestamps)
+    3. No duplicates
+    4. No future timestamps beyond current time + 1 hour buffer
+  scope:
+    include:
+      - "**/database/migrations/*.php"
+  severity: "ERROR"
+  rules:
+    - rule_id: "migrations-timestamp-monotonic"
+      type: "behavior_pattern"
+      detector: "migrations_timestamp_monotonic"
+      requires:
+        - pattern: "class \\w+ extends Migration"
+          must_exist: true
+      params:
+        require_artisan_generated: true
+        max_future_offset_seconds: 3600
+        check_chronological_order: true
+        check_duplicates: true
+      violation_message: "Migration timestamp violates monotonic ordering or was not generated via artisan: {issue}"
+      remediation: |
+        Regenerate migration using: php artisan make:migration create_table_name
+        
+        This ensures:
+        - Proper timestamp ordering
+        - No duplicate timestamps
+        - Correct file structure
+  enforcement:
+    block_merge: true

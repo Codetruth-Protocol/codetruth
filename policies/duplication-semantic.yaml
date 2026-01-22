@@ -1,0 +1,47 @@
+ctp_version: "1.0.0"
+policy_schema_version: "1.0.0"
+policy:
+  id: "duplication.semantic_similarity"
+  name: "Semantic Code Duplication Detection"
+  description: |
+    Detects functions/modules with high semantic similarity:
+    - WARNING: 70-89% similarity
+    - ERROR: 90%+ similarity
+    
+    Uses AST-normalized comparison to detect near-duplicate code
+    that should be consolidated into shared utilities.
+  scope:
+    include:
+      - "**/*.{py,js,ts,rs,go,java,php,rb}"
+    exclude:
+      - "**/tests/**"
+      - "**/test/**"
+      - "**/spec/**"
+      - "**/vendor/**"
+      - "**/node_modules/**"
+      - "**/target/**"
+      - "**/build/**"
+  severity: "WARNING"
+  rules:
+    - rule_id: "semantic-similarity-thresholds"
+      type: "behavior_pattern"
+      detector: "semantic_similarity"
+      requires:
+        - pattern: "function|def |fn |pub fn |func "
+          context: ""
+          must_exist: false
+      params:
+        warn_threshold: 0.7
+        error_threshold: 0.9
+        min_function_size: 5
+        compare_across_files: true
+        normalize_whitespace: true
+        ignore_comments: false
+        ast_normalization: true
+        token_shingle_size: 3
+      violation_message: "Potential code duplication detected: {similarity}% similarity between {file1}:{function1} and {file2}:{function2}"
+      remediation: |
+        Consolidate similar functions into a shared utility module.
+        Consider creating a common function that accepts parameters to handle variations.
+  enforcement:
+    block_merge: false

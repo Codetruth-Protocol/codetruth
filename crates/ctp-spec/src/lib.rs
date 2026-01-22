@@ -12,6 +12,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use anyhow::{Context, Result};
 use tracing::{debug, info, warn};
+use ctp_utils::text_similarity::jaccard_similarity;
 
 pub mod generator;
 pub mod validator;
@@ -302,21 +303,7 @@ impl ProductSpecManager {
     }
     
     fn calculate_similarity(&self, a: &str, b: &str) -> f64 {
-        use std::collections::HashSet;
-        
-        let a_lower = a.to_lowercase();
-        let a_words: HashSet<_> = a_lower
-            .split_whitespace()
-            .collect();
-        let b_lower = b.to_lowercase();
-        let b_words: HashSet<_> = b_lower
-            .split_whitespace()
-            .collect();
-        
-        let intersection = a_words.intersection(&b_words).count();
-        let union = a_words.union(&b_words).count();
-        
-        if union == 0 { 0.0 } else { intersection as f64 / union as f64 }
+        jaccard_similarity(a, b)
     }
 }
 

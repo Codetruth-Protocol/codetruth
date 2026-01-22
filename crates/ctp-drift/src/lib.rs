@@ -34,6 +34,7 @@ pub use documentation_drift::{
 
 use serde::{Deserialize, Serialize};
 use tracing::debug;
+use ctp_utils::text_similarity::jaccard_similarity;
 
 /// Drift severity levels
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -264,34 +265,7 @@ impl DriftDetector {
 
     /// Calculate similarity between two text strings
     fn calculate_similarity(&self, a: &str, b: &str) -> f64 {
-        if a.is_empty() && b.is_empty() {
-            return 1.0;
-        }
-        if a.is_empty() || b.is_empty() {
-            return 0.0;
-        }
-
-        // Jaccard similarity on words
-        let a_lower = a.to_lowercase();
-        let a_words: HashSet<&str> = a_lower
-            .split(|c: char| !c.is_alphanumeric())
-            .filter(|s| !s.is_empty())
-            .collect();
-
-        let b_lower = b.to_lowercase();
-        let b_words: HashSet<&str> = b_lower
-            .split(|c: char| !c.is_alphanumeric())
-            .filter(|s| !s.is_empty())
-            .collect();
-
-        let intersection = a_words.intersection(&b_words).count();
-        let union = a_words.union(&b_words).count();
-
-        if union == 0 {
-            0.0
-        } else {
-            intersection as f64 / union as f64
-        }
+        jaccard_similarity(a, b)
     }
 
     /// Convert similarity score to severity level

@@ -1,0 +1,46 @@
+ctp_version: "1.0.0"
+policy_schema_version: "1.0.0"
+policy:
+  id: "laravel.queue.horizon_configured"
+  name: "Laravel Queue/Horizon Configuration"
+  description: |
+    Ensures:
+    1. All dispatched jobs have corresponding queue configuration
+    2. Horizon monitors all active queues
+    3. QUEUE_CONNECTION is set in .env
+    4. Jobs implement ShouldQueue when dispatched
+  scope:
+    include:
+      - "**/*.php"
+      - "config/queue.php"
+      - "config/horizon.php"
+      - ".env"
+      - ".env.example"
+  severity: "CRITICAL"
+  rules:
+    - rule_id: "queue-horizon-configured"
+      type: "behavior_pattern"
+      detector: "queue_horizon_configured"
+      requires:
+        - pattern: "dispatch("
+          context: ""
+          must_exist: false
+        - pattern: "ShouldQueue"
+          context: ""
+          must_exist: false
+      params:
+        require_horizon_monitoring: true
+        require_env_config: true
+        validate_queue_names: true
+        check_should_queue_interface: true
+      violation_message: "Queue job detected but queue/horizon configuration is missing or inconsistent: {issue}"
+      remediation: |
+        1. Define queue connection in config/queue.php
+        2. Add queue to config/horizon.php environments section
+        3. Set QUEUE_CONNECTION in .env to match configured connection
+        4. Ensure job class implements ShouldQueue interface
+        5. Verify queue name matches between dispatch() call and config
+  enforcement:
+    block_merge: true
+    notify:
+      - "@devops-team"

@@ -19,6 +19,7 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["v4"] }
 rayon = { workspace = true }
 regex = "1.0"
+ctp-utils = { path = "../ctp-utils" }
 
 # Internal crates
 ctp-parser = { path = "../ctp-parser", features = ["all-languages"] }

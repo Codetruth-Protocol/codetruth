@@ -1,0 +1,19 @@
+ctp_version: "1.0.0"
+policy_schema_version: "1.0.0"
+policy:
+  id: "critical.tests.present"
+  name: "Tests must exist for critical and high entities"
+  description: "Ensures that all Critical/High criticality components have at least one associated test."
+  scope:
+    include:
+      - "**/*.*"
+  severity: "ERROR"
+  rules:
+    - rule_id: "critical-tests-present"
+      type: "behavior_pattern"
+      requires:
+        - pattern: "__CTP_CRITICAL_SYMBOL__"
+          context: ""
+          must_exist: true
+      violation_message: "Missing tests for critical/high entity."
+      remediation: "Add at least one test referencing the symbol or mapped path; ensure coverage is collected."

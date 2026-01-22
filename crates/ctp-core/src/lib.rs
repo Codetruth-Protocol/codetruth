@@ -13,12 +13,18 @@ pub mod models;
 pub mod error;
 pub mod context_bridge;
 pub mod naming_patterns;
+pub mod detectors;
+pub mod criticality;
+pub mod coverage;
 
 pub use engine::{CodeTruthEngine, EngineConfig};
 pub use models::DriftSeverity;
 pub use models::*;
 pub use error::CTPError;
 pub use naming_patterns::{NamingPatternDetector, NamingAnalysisResult, PatternType};
+pub use detectors::{Detector, DetectorsRegistry};
+pub use criticality::{CriticalWeightCalculator, CriticalWeight, CriticalityLevel};
+pub use coverage::{CoverageLoader, CoverageReport, FileCoverage, CoverageFormat};
 
 /// CTP Protocol version
 pub const CTP_VERSION: &str = "1.0.0";

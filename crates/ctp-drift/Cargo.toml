@@ -13,3 +13,4 @@ anyhow = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 regex = "1.10"
+ctp-utils = { path = "../ctp-utils" }

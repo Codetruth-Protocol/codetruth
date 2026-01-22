@@ -1,0 +1,51 @@
+ctp_version: "1.0.0"
+policy_schema_version: "1.0.0"
+policy:
+  id: "critical.tests.coverage.min"
+  name: "Minimum Test Coverage by Criticality"
+  description: |
+    Enforces minimum test coverage thresholds based on criticality level.
+    Coverage reports are parsed from multiple formats (LCOV, Cobertura, JaCoCo, nyc, pytest-cov, tarpaulin).
+    Fails closed if coverage reports are missing for critical entities.
+  scope:
+    include:
+      - "**/*.*"
+  severity: "ERROR"
+  rules:
+    - rule_id: "critical-tests-coverage"
+      type: "behavior_pattern"
+      detector: "critical_tests_coverage"
+      requires:
+        - pattern: "__CTP_CRITICAL_SYMBOL__|@critical|@high"
+          context: ""
+          must_exist: false
+      params:
+        coverage_thresholds:
+          critical: 0.90
+          high: 0.80
+          medium: 0.70
+          low: 0.50
+        coverage_report_paths:
+          - "coverage/lcov.info"
+          - "coverage/cobertura.xml"
+          - "coverage/jacoco.xml"
+          - "coverage/coverage-final.json"
+          - "coverage.xml"
+          - ".nyc_output/coverage.json"
+        fail_on_missing_report: true
+        require_for_levels:
+          - "critical"
+          - "high"
+      violation_message: "Test coverage {actual}% below required {threshold}% for {level} entity: {entity_path}"
+      remediation: |
+        Increase test coverage to meet threshold for criticality level:
+        - Critical: 90% minimum
+        - High: 80% minimum
+        - Medium: 70% minimum
+        - Low: 50% minimum
+        
+        Generate coverage report using your test framework's coverage tool.
+  enforcement:
+    block_merge: true
+    notify:
+      - "@qa-team"

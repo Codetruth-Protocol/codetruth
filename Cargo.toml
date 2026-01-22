@@ -33,6 +33,7 @@ members = [
     "crates/ctp-product",
     "crates/ctp-storage",
     "crates/ctp-spec",
+    "crates/ctp-utils",
 ]
 
 [workspace.package]

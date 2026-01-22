@@ -1,0 +1,49 @@
+ctp_version: "1.0.0"
+policy_schema_version: "1.0.0"
+policy:
+  id: "ui.duplicate_effects"
+  name: "Duplicate UI Effects in Action Flow"
+  description: |
+    Detects multiple toast/notification calls in the same execution path.
+    Prevents duplicate user-facing messages that degrade UX.
+  scope:
+    include:
+      - "**/*.{ts,tsx,js,jsx,vue,svelte,py}"
+      - "**/components/**"
+      - "**/pages/**"
+      - "**/views/**"
+    exclude:
+      - "**/tests/**"
+      - "**/test/**"
+      - "**/spec/**"
+  severity: "WARNING"
+  rules:
+    - rule_id: "ui-duplicate-toast"
+      type: "behavior_pattern"
+      detector: "ui_duplicate_toast"
+      requires:
+        - pattern: "toast|showToast|notify|alert|showNotification|message|showMessage"
+          context: ""
+          must_exist: false
+      params:
+        side_effect_patterns:
+          - "toast("
+          - "showToast("
+          - "notify("
+          - "alert("
+          - "showNotification("
+          - "message("
+          - "showMessage("
+          - "snackbar("
+          - "showSnackbar("
+        max_per_path: 1
+        track_call_graph: true
+        check_same_function: true
+        check_cross_function: true
+      violation_message: "Multiple user-facing notifications detected in the same action flow: {count} calls found in path {path}"
+      remediation: |
+        Ensure only one notification is shown per user action.
+        Consider using a notification manager that deduplicates messages.
+        Review the call graph to identify where duplicate notifications are triggered.
+  enforcement:
+    block_merge: false

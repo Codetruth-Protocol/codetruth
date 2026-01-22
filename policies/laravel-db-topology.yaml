@@ -1,0 +1,47 @@
+ctp_version: "1.0.0"
+policy_schema_version: "1.0.0"
+policy:
+  id: "laravel.db.topology_alignment"
+  name: "Database Topology and Query Alignment"
+  description: |
+    Ensures queries align with database structure:
+    1. WHERE clauses have corresponding indexes
+    2. Foreign keys match JOIN patterns
+    3. Partition keys are used in queries
+    4. Sharding keys are respected
+  scope:
+    include:
+      - "**/database/migrations/*.php"
+      - "**/app/Models/*.php"
+      - "**/*Repository.php"
+      - "**/*Service.php"
+      - "**/database/seeders/*.php"
+  severity: "ERROR"
+  rules:
+    - rule_id: "db-index-alignment"
+      type: "behavior_pattern"
+      detector: "db_topology_alignment"
+      requires:
+        - pattern: "Schema::(create|table|foreign)"
+          context: ""
+          must_exist: false
+        - pattern: "->where|->join|->leftJoin|->rightJoin"
+          context: ""
+          must_exist: false
+      params:
+        check_missing_indexes: true
+        check_foreign_key_alignment: true
+        check_partition_usage: true
+        check_sharding_keys: true
+        index_usage_threshold: 0.7
+      violation_message: "Query pattern does not align with database structure: {issue}"
+      remediation: |
+        1. Add index for frequently queried columns in WHERE clauses
+        2. Verify foreign key constraints match JOIN patterns
+        3. Ensure partition keys are used in WHERE clauses for partitioned tables
+        4. Respect sharding key in queries to avoid cross-shard operations
+        5. Review migration files to ensure indexes are created for query patterns
+  enforcement:
+    block_merge: false
+    notify:
+      - "@database-team"
