@@ -7,6 +7,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use std::collections::HashMap;
 
 use crate::essence::Essence;
 use crate::relationship::Relationship;
@@ -213,9 +214,37 @@ pub struct SemanticContext {
 
     /// When this context was last updated
     pub updated_at: DateTime<Utc>,
+
+    /// Naming pattern metadata for this context's directory
+    pub naming_pattern: Option<NamingPatternMetadata>,
+}
+
+/// Naming pattern metadata for context integration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NamingPatternMetadata {
+    /// The dominant pattern type
+    pub pattern_type: String,
+    /// Confidence score (0.0 - 1.0)
+    pub confidence: f64,
+    /// Number of files analyzed
+    pub sample_size: usize,
+    /// Last analysis timestamp
+    pub analyzed_at: DateTime<Utc>,
+}
+
+impl NamingPatternMetadata {
+    pub fn new(pattern_type: &str, confidence: f64, sample_size: usize) -> Self {
+        Self {
+            pattern_type: pattern_type.to_string(),
+            confidence,
+            sample_size,
+            analyzed_at: Utc::now(),
+        }
+    }
 }
 
 impl SemanticContext {
+
     /// Create a new context with minimal required fields
     pub fn new(id: ContextId, level: ContextLevel, essence: Essence) -> Self {
         let now = Utc::now();
@@ -233,6 +262,7 @@ impl SemanticContext {
             content_hash,
             created_at: now,
             updated_at: now,
+            naming_pattern: None,
         }
     }
 

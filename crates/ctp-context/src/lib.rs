@@ -19,7 +19,7 @@ pub mod relationship;
 pub mod error;
 pub mod integration;
 
-pub use context::{SemanticContext, ContextId, ContextLevel};
+pub use context::{SemanticContext, ContextId, ContextLevel, NamingPatternMetadata};
 pub use essence::{Essence, ComponentRole, BoundaryDirection};
 pub use registry::{ComponentRegistry, RegistryEntry, RedundancyReport};
 pub use compression::{ContextCompressor, CompressedContext, PriorityRule};

@@ -1,0 +1,100 @@
+/* CodeTruth Protocol Documentation - Custom Styles */
+
+:root {
+    --ctp-primary: #4f46e5;
+    --ctp-primary-light: #6366f1;
+    --ctp-accent: #10b981;
+    --ctp-warning: #f59e0b;
+    --ctp-error: #ef4444;
+}
+
+/* Header styling */
+.menu-title {
+    font-weight: 700;
+}
+
+/* Code block styling */
+pre {
+    border-radius: 8px;
+}
+
+code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* Table styling */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+}
+
+th, td {
+    border: 1px solid var(--table-border-color);
+    padding: 0.5em 1em;
+}
+
+th {
+    background-color: var(--table-header-bg);
+    font-weight: 600;
+}
+
+/* Drift level badges */
+.drift-none { color: var(--ctp-accent); }
+.drift-low { color: #84cc16; }
+.drift-medium { color: var(--ctp-warning); }
+.drift-high { color: #f97316; }
+.drift-critical { color: var(--ctp-error); }
+
+/* Callout boxes */
+.warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    border-left: 4px solid var(--ctp-warning);
+    padding: 1em;
+    margin: 1em 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.info {
+    background-color: rgba(79, 70, 229, 0.1);
+    border-left: 4px solid var(--ctp-primary);
+    padding: 1em;
+    margin: 1em 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.success {
+    background-color: rgba(16, 185, 129, 0.1);
+    border-left: 4px solid var(--ctp-accent);
+    padding: 1em;
+    margin: 1em 0;
+    border-radius: 0 8px 8px 0;
+}
+
+/* Architecture diagram styling */
+pre.language-text {
+    font-family: monospace;
+    line-height: 1.4;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    table {
+        font-size: 0.9em;
+    }
+    
+    th, td {
+        padding: 0.3em 0.5em;
+    }
+}
+
+/* Print styles */
+@media print {
+    .sidebar {
+        display: none;
+    }
+    
+    .content {
+        max-width: 100%;
+    }
+}

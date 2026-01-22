@@ -18,6 +18,7 @@ parking_lot = { workspace = true }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["v4"] }
 rayon = { workspace = true }
+regex = "1.0"
 
 # Internal crates
 ctp-parser = { path = "../ctp-parser", features = ["all-languages"] }
@@ -33,6 +34,7 @@ llm = ["ctp-llm"]
 [dev-dependencies]
 criterion = { workspace = true }
 tokio-test = "0.4"
+tempfile = "3.0"
 
 # [[bench]]
 # name = "analysis"

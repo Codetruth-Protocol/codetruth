@@ -12,11 +12,13 @@ pub mod engine;
 pub mod models;
 pub mod error;
 pub mod context_bridge;
+pub mod naming_patterns;
 
 pub use engine::{CodeTruthEngine, EngineConfig};
 pub use models::DriftSeverity;
 pub use models::*;
 pub use error::CTPError;
+pub use naming_patterns::{NamingPatternDetector, NamingAnalysisResult, PatternType};
 
 /// CTP Protocol version
 pub const CTP_VERSION: &str = "1.0.0";

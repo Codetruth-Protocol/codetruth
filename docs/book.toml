@@ -1,0 +1,52 @@
+[book]
+title = "CodeTruth Protocol Documentation"
+authors = ["CodeTruth Contributors"]
+description = "Open Standard for AI Code Intelligence & Drift Monitoring"
+language = "en"
+src = "src"
+multilingual = false
+
+[build]
+build-dir = "book"
+create-missing = false
+
+[rust]
+edition = "2021"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/codetruth/codetruth"
+edit-url-template = "https://github.com/codetruth/codetruth/edit/main/docs/{path}"
+site-url = "https://docs.codetruth.dev/"
+no-section-label = false
+cname = "docs.codetruth.dev"
+additional-css = ["custom.css"]
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.html.playground]
+editable = true
+copyable = true
+copy-js = true
+runnable = false
+
+[output.html.search]
+enable = true
+limit-results = 30
+teaser-word-count = 30
+use-hierarchical-headings = true
+boost-title = 2
+boost-hierarchy = 1
+boost-paragraph = 1
+expand = true
+heading-split-level = 3
+
+[output.html.print]
+enable = true
+
+[preprocessor.links]
+
+[preprocessor.index]

@@ -242,6 +242,25 @@ enum Commands {
         #[command(subcommand)]
         action: SpecAction,
     },
+
+    /// Analyze naming patterns and detect inconsistencies
+    Naming {
+        /// Directory to analyze (defaults to current directory)
+        #[arg(default_value = ".")]
+        path: PathBuf,
+
+        /// Output format (simple, json, yaml)
+        #[arg(short, long, default_value = "simple")]
+        format: String,
+
+        /// Output file (defaults to stdout)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Minimum confidence threshold (0.0-1.0)
+        #[arg(long, default_value = "0.7")]
+        confidence: f64,
+    },
 }
 
 #[derive(Subcommand)]
@@ -325,6 +344,9 @@ async fn main() -> Result<()> {
         }
         Commands::Spec { action } => {
             cmd_spec(action, cli.llm_key.as_deref(), cli.llm_provider.as_deref()).await
+        }
+        Commands::Naming { path, format, output, confidence } => {
+            cmd_naming(&config, path, format, output, confidence).await
         }
     }
 }
@@ -1423,6 +1445,77 @@ async fn cmd_spec(
             cmd_spec_show(spec_file).await
         }
     }
+}
+
+async fn cmd_naming(
+    config: &CliConfig,
+    path: PathBuf,
+    format: String,
+    output: Option<PathBuf>,
+    confidence: f64,
+) -> Result<()> {
+    println!("{} Analyzing naming patterns...", style("→").cyan());
+    
+    let engine = build_engine(config, false);
+    
+    // Analyze the directory
+    let result = engine.analyze_naming_patterns(&path)?;
+    
+    match format.as_str() {
+        "simple" => {
+            println!("\n📊 Naming Pattern Analysis");
+            println!("{}", "=".repeat(50));
+            println!("📁 Directory: {}", result.directory);
+            println!("🎯 Detected Pattern: {:?}", result.detected_pattern.pattern_type);
+            println!("📈 Confidence: {:.1}%", result.detected_pattern.confidence * 100.0);
+            println!("📋 Sample Size: {} files", result.detected_pattern.sample_size);
+            println!("✅ Compliance Score: {:.1}%", result.compliance_score * 100.0);
+            
+            if !result.violations.is_empty() {
+                println!("\n⚠️  Violations Found: {}", result.violations.len());
+                println!("{}", "-".repeat(50));
+                
+                for (i, violation) in result.violations.iter().enumerate() {
+                    println!("\n{}. 📄 {}", i + 1, violation.file_name);
+                    println!("   Expected: {:?}", violation.expected_pattern);
+                    println!("   Actual: {:?}", violation.actual_pattern);
+                    println!("   Severity: {:?}", violation.severity);
+                }
+            } else {
+                println!("\n✅ No violations found - all files follow the pattern!");
+            }
+            
+            if !result.detected_pattern.exceptions.is_empty() {
+                println!("\n📝 Pattern Exceptions:");
+                for exception in &result.detected_pattern.exceptions {
+                    println!("  - {}", exception);
+                }
+            }
+        }
+        "json" => {
+            let json_output = serde_json::to_string_pretty(&result)?;
+            if let Some(out_path) = output {
+                tokio::fs::write(&out_path, json_output).await?;
+                println!("{} Results saved to {}", style("✓").green(), out_path.display());
+            } else {
+                println!("{}", json_output);
+            }
+        }
+        "yaml" => {
+            let yaml_output = serde_yaml::to_string(&result)?;
+            if let Some(out_path) = output {
+                tokio::fs::write(&out_path, yaml_output).await?;
+                println!("{} Results saved to {}", style("✓").green(), out_path.display());
+            } else {
+                println!("{}", yaml_output);
+            }
+        }
+        _ => {
+            anyhow::bail!("Unsupported format: {}. Use 'simple', 'json', or 'yaml'", format);
+        }
+    }
+    
+    Ok(())
 }
 
 fn print_simple_results(results: &[ctp_core::ExplanationGraph]) {

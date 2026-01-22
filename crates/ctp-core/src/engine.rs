@@ -14,6 +14,7 @@ use ctp_policy::PolicyEngine;
 
 use crate::error::{CTPError, CTPResult};
 use crate::models::*;
+use crate::naming_patterns::{NamingPatternDetector, NamingAnalysisResult};
 
 struct IntentInferenceResult {
     inferred_intent: String,
@@ -72,6 +73,7 @@ pub struct CodeTruthEngine {
     parser: Arc<RwLock<CTPParser>>,
     drift_detector: DriftDetector,
     policy_engine: Arc<RwLock<PolicyEngine>>,
+    naming_detector: Arc<RwLock<NamingPatternDetector>>,
 }
 
 impl CodeTruthEngine {
@@ -89,12 +91,14 @@ impl CodeTruthEngine {
         
         let drift_detector = DriftDetector::new(DriftConfig::default());
         let policy_engine = Arc::new(RwLock::new(PolicyEngine::new()));
+        let naming_detector = Arc::new(RwLock::new(NamingPatternDetector::new()));
         
         Self {
             config,
             parser,
             drift_detector,
             policy_engine,
+            naming_detector,
         }
     }
 
@@ -137,7 +141,14 @@ impl CodeTruthEngine {
             .collect()
     }
 
-    /// Analyze a single file
+    /// Analyze naming patterns in a directory
+    pub fn analyze_naming_patterns(&self, directory_path: &Path) -> CTPResult<NamingAnalysisResult> {
+        let mut detector = self.naming_detector.write();
+        detector.analyze_directory(directory_path)
+            .map_err(|e| CTPError::AnalysisError(format!("Naming pattern analysis failed: {}", e)))
+    }
+
+    /// Analyze a single file and generate explanation graph
     #[instrument(skip(self))]
     pub async fn analyze_file(&self, path: &Path) -> CTPResult<ExplanationGraph> {
         let start = std::time::Instant::now();
