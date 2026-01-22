@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codetruth.dev/schema/v1/policy.json",
+  "title": "CTP Policy Definition",
+  "description": "CodeTruth Protocol Policy Definition Language (PDL) v1.0",
+  "type": "object",
+  "required": ["ctp_version", "policy_schema_version", "policy"],
+  "properties": {
+    "ctp_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "policy_schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "policy": {
+      "$ref": "#/$defs/policy"
+    }
+  },
+  "$defs": {
+    "policy": {
+      "type": "object",
+      "required": ["id", "name", "description", "scope", "severity", "rules"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "scope": { "$ref": "#/$defs/scope" },
+        "severity": { "enum": ["INFO", "WARNING", "ERROR", "CRITICAL"] },
+        "rules": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/rule" }
+        },
+        "enforcement": { "$ref": "#/$defs/enforcement" },
+        "exceptions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/exception" }
+        },
+        "metadata": { "$ref": "#/$defs/metadata" }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Glob patterns for files to include"
+        },
+        "exclude": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Glob patterns for files to exclude"
+        }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "required": ["rule_id", "type"],
+      "properties": {
+        "rule_id": { "type": "string" },
+        "type": {
+          "enum": ["behavior_pattern", "documentation", "security", "naming", "complexity"]
+        },
+        "requires": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/requirement" }
+        },
+        "violation_message": { "type": "string" },
+        "remediation": { "type": "string" }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "properties": {
+        "pattern": { "type": "string" },
+        "context": { "type": "string" },
+        "must_exist": { "type": "boolean" },
+        "must_have_doc": { "type": "boolean" }
+      }
+    },
+    "enforcement": {
+      "type": "object",
+      "properties": {
+        "block_merge": { "type": "boolean", "default": false },
+        "notify": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "require_approval_from": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "exception": {
+      "type": "object",
+      "required": ["file", "reason"],
+      "properties": {
+        "file": { "type": "string" },
+        "reason": { "type": "string" },
+        "approved_by": { "type": "string" },
+        "expires_at": { "type": "string", "format": "date" }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "created_by": { "type": "string" },
+        "created_at": { "type": "string", "format": "date" },
+        "last_updated": { "type": "string", "format": "date" },
+        "references": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" }
+        }
+      }
+    }
+  }
+}

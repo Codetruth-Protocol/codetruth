@@ -1,0 +1,81 @@
+# CodeTruth Protocol Workspace
+# 
+# This workspace contains all crates for the CTP ecosystem:
+#
+# Core Infrastructure:
+# - ctp-core: Core analysis engine and data structures
+# - ctp-parser: Tree-sitter based multi-language parsing
+# - ctp-storage: Data persistence and retrieval layer
+#
+# Analysis Engines:
+# - ctp-drift: Drift detection between intent and implementation
+# - ctp-policy: Policy evaluation and governance engine
+# - ctp-spec: Product specification generation and management
+# - ctp-context: Semantic context and anatomy model
+# - ctp-design: Design pattern detection and analysis
+#
+# Interfaces:
+# - ctp-cli: Command-line interface for all operations
+# - ctp-llm: LLM integration layer (Groq, OpenAI, Anthropic)
+# - ctp-product: Product metadata and sensitivity management
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/ctp-core",
+    "crates/ctp-cli",
+    "crates/ctp-parser",
+    "crates/ctp-drift",
+    "crates/ctp-policy",
+    "crates/ctp-llm",
+    "crates/ctp-context",
+    "crates/ctp-design",
+    "crates/ctp-product",
+    "crates/ctp-storage",
+    "crates/ctp-spec",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/codetruth/codetruth"
+homepage = "https://codetruth.dev"
+authors = ["CodeTruth Contributors"]
+
+[workspace.dependencies]
+# Core dependencies
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Parsing
+tree-sitter = "0.20"
+
+# Async HTTP
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# CLI
+clap = { version = "4.0", features = ["derive"] }
+
+# Concurrency
+rayon = "1.0"
+parking_lot = "0.12"
+
+# Hashing
+sha2 = "0.10"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Testing
+criterion = "0.5"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

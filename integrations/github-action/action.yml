@@ -1,0 +1,107 @@
+name: 'CodeTruth Analysis'
+description: 'Run CodeTruth Protocol analysis on your codebase'
+author: 'CodeTruth Contributors'
+
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
+inputs:
+  analyze:
+    description: 'Run analysis on changed files'
+    required: false
+    default: 'true'
+  check-policies:
+    description: 'Check policy compliance'
+    required: false
+    default: 'true'
+  policies-path:
+    description: 'Path to policy files'
+    required: false
+    default: '.ctp/policies/'
+  detect-drift:
+    description: 'Detect drift from base branch'
+    required: false
+    default: 'true'
+  fail-on-violation:
+    description: 'Fail the action on policy violations'
+    required: false
+    default: 'false'
+  min-drift-level:
+    description: 'Minimum drift level to report (none, low, medium, high, critical)'
+    required: false
+    default: 'medium'
+  api-key:
+    description: 'API key for LLM enhancement (optional)'
+    required: false
+  post-comment:
+    description: 'Post analysis results as PR comment'
+    required: false
+    default: 'true'
+
+outputs:
+  drift-detected:
+    description: 'Whether drift was detected'
+  violations-count:
+    description: 'Number of policy violations'
+  analysis-report:
+    description: 'Path to the analysis report JSON'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup CTP
+      shell: bash
+      run: |
+        echo "Installing CodeTruth CLI..."
+        curl -fsSL https://codetruth.dev/install.sh | sh || {
+          echo "Falling back to cargo install..."
+          cargo install ctp-cli
+        }
+
+    - name: Get changed files
+      id: changed-files
+      shell: bash
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} > changed_files.txt
+        else
+          git diff --name-only HEAD~1 HEAD > changed_files.txt
+        fi
+        echo "Changed files:"
+        cat changed_files.txt
+
+    - name: Run CTP Analysis
+      shell: bash
+      run: |
+        ARGS=""
+        
+        if [ "${{ inputs.analyze }}" = "true" ]; then
+          ARGS="$ARGS --analyze"
+        fi
+        
+        if [ "${{ inputs.check-policies }}" = "true" ]; then
+          ARGS="$ARGS --check-policies --policies-path=${{ inputs.policies-path }}"
+        fi
+        
+        if [ "${{ inputs.detect-drift }}" = "true" ]; then
+          ARGS="$ARGS --detect-drift"
+        fi
+        
+        if [ "${{ inputs.fail-on-violation }}" = "true" ]; then
+          ARGS="$ARGS --fail-on-violation"
+        fi
+        
+        ARGS="$ARGS --min-drift-level=${{ inputs.min-drift-level }}"
+        ARGS="$ARGS --output=.ctp/output/analysis.json"
+        
+        ctp ci-check $ARGS $(cat changed_files.txt | tr '\n' ' ')
+
+    - name: Post PR Comment
+      if: inputs.post-comment == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      run: |
+        if [ -f .ctp/output/analysis.json ]; then
+          echo "Posting analysis results to PR..."
+          # Comment posting logic would go here
+        fi

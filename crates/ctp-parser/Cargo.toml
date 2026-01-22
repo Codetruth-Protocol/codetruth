@@ -1,0 +1,31 @@
+[package]
+name = "ctp-parser"
+description = "AST parsing layer for CodeTruth Protocol using tree-sitter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+tree-sitter = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+# Language grammars (optional features)
+tree-sitter-python = { version = "0.20", optional = true }
+tree-sitter-javascript = { version = "0.20", optional = true }
+tree-sitter-typescript = { version = "0.20", optional = true }
+tree-sitter-rust = { version = "0.20", optional = true }
+tree-sitter-go = { version = "0.20", optional = true }
+tree-sitter-java = { version = "0.20", optional = true }
+
+[features]
+default = ["python", "javascript", "typescript"]
+python = ["tree-sitter-python"]
+javascript = ["tree-sitter-javascript"]
+typescript = ["tree-sitter-typescript"]
+rust-lang = ["tree-sitter-rust"]
+go = ["tree-sitter-go"]
+java = ["tree-sitter-java"]
+all-languages = ["python", "javascript", "typescript", "rust-lang", "go", "java"]

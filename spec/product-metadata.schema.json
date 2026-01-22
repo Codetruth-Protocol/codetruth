@@ -1,0 +1,391 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CodeTruth Product Metadata Specification",
+  "description": "Product-level metadata for reliable drift detection against business objectives",
+  "type": "object",
+  "required": ["ctp_version", "product", "core_functionalities"],
+  "properties": {
+    "ctp_version": {
+      "type": "string",
+      "description": "CodeTruth Protocol version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "example": "1.0.0"
+    },
+    "product": {
+      "type": "object",
+      "required": ["name", "type", "primary_language"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Product name",
+          "example": "MyApp"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["web_app", "mobile_app", "cli_tool", "library", "api_service", "desktop_app", "embedded_system"],
+          "description": "Product category"
+        },
+        "version": {
+          "type": "string",
+          "description": "Current product version",
+          "example": "2.1.0"
+        },
+        "primary_language": {
+          "type": "string",
+          "description": "Primary programming language",
+          "example": "rust"
+        },
+        "natural_language": {
+          "type": "string",
+          "description": "Primary natural language for documentation and comments",
+          "default": "en",
+          "example": "en"
+        },
+        "supported_languages": {
+          "type": "array",
+          "description": "Additional natural languages supported (for multilingual stub detection)",
+          "items": {
+            "type": "string"
+          },
+          "example": ["en", "es", "fr", "de", "ja", "zh"]
+        },
+        "currency": {
+          "type": "string",
+          "description": "Primary currency if financial product",
+          "pattern": "^[A-Z]{3}$",
+          "example": "USD"
+        }
+      }
+    },
+    "demographics": {
+      "type": "object",
+      "description": "Target user demographics for product-market fit drift detection",
+      "properties": {
+        "target_user_base": {
+          "type": "object",
+          "properties": {
+            "current_count": {
+              "type": "integer",
+              "description": "Current active user count",
+              "minimum": 0,
+              "example": 50000
+            },
+            "one_year_target": {
+              "type": "integer",
+              "description": "Target user count in 1 year",
+              "minimum": 0,
+              "example": 500000
+            },
+            "growth_rate_expected": {
+              "type": "number",
+              "description": "Expected monthly growth rate (percentage)",
+              "minimum": 0,
+              "example": 15.5
+            }
+          }
+        },
+        "primary_markets": {
+          "type": "array",
+          "description": "Primary geographic markets",
+          "items": {
+            "type": "string"
+          },
+          "example": ["US", "EU", "APAC"]
+        },
+        "user_segments": {
+          "type": "array",
+          "description": "User personas or segments",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "example": "Enterprise Admin"
+              },
+              "percentage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "example": 30
+              },
+              "critical_features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "example": ["bulk_operations", "audit_logs", "sso"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "core_functionalities": {
+      "type": "array",
+      "description": "Core product functionalities - drift here indicates product scope creep or feature abandonment",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "category", "criticality"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique functionality identifier",
+            "pattern": "^[a-z0-9_-]+$",
+            "example": "user_authentication"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable functionality name",
+            "example": "User Authentication"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["core", "essential", "enhancement", "experimental"],
+            "description": "Functionality category"
+          },
+          "criticality": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low"],
+            "description": "Business criticality level"
+          },
+          "description": {
+            "type": "string",
+            "description": "What this functionality does",
+            "example": "Allows users to securely log in using email/password or OAuth"
+          },
+          "entry_points": {
+            "type": "array",
+            "description": "Code entry points implementing this functionality",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "example": "src/auth/login.rs"
+                },
+                "function": {
+                  "type": "string",
+                  "example": "authenticate_user"
+                },
+                "module": {
+                  "type": "string",
+                  "example": "auth::login"
+                }
+              }
+            }
+          },
+          "dependencies": {
+            "type": "array",
+            "description": "Other functionalities this depends on",
+            "items": {
+              "type": "string"
+            },
+            "example": ["database_connection", "session_management"]
+          },
+          "metrics": {
+            "type": "object",
+            "description": "Success metrics for this functionality",
+            "properties": {
+              "usage_percentage": {
+                "type": "number",
+                "description": "Percentage of users using this feature",
+                "minimum": 0,
+                "maximum": 100,
+                "example": 95
+              },
+              "performance_target": {
+                "type": "string",
+                "description": "Performance requirement",
+                "example": "<200ms p95 latency"
+              },
+              "error_rate_threshold": {
+                "type": "number",
+                "description": "Maximum acceptable error rate (percentage)",
+                "minimum": 0,
+                "maximum": 100,
+                "example": 0.1
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "deprecated", "planned", "experimental"],
+            "default": "active"
+          },
+          "last_verified": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this functionality was last verified to work as specified"
+          }
+        }
+      }
+    },
+    "technical_constraints": {
+      "type": "object",
+      "description": "Technical constraints that affect drift detection",
+      "properties": {
+        "max_response_time_ms": {
+          "type": "integer",
+          "description": "Maximum acceptable response time",
+          "example": 500
+        },
+        "max_memory_mb": {
+          "type": "integer",
+          "description": "Maximum memory usage",
+          "example": 512
+        },
+        "supported_platforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": ["linux", "macos", "windows"]
+        },
+        "minimum_test_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Minimum required test coverage percentage",
+          "example": 80
+        }
+      }
+    },
+    "development_markers": {
+      "type": "object",
+      "description": "Patterns to detect in code that indicate incomplete work",
+      "properties": {
+        "stub_patterns": {
+          "type": "array",
+          "description": "Patterns indicating stub/placeholder code (multilingual)",
+          "items": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Regex pattern to match"
+              },
+              "language": {
+                "type": "string",
+                "description": "Natural language code (ISO 639-1)"
+              },
+              "severity": {
+                "type": "string",
+                "enum": ["critical", "high", "medium", "low"]
+              }
+            }
+          },
+          "default": [
+            {"pattern": "(?i)(TODO|FIXME|HACK|XXX|STUB)", "language": "en", "severity": "medium"},
+            {"pattern": "(?i)(placeholder|temporary|temp code)", "language": "en", "severity": "high"},
+            {"pattern": "(?i)(implement.*production|replace.*with|change.*before)", "language": "en", "severity": "critical"},
+            {"pattern": "(?i)(por hacer|arreglar|temporal)", "language": "es", "severity": "medium"},
+            {"pattern": "(?i)(à faire|corriger|temporaire)", "language": "fr", "severity": "medium"},
+            {"pattern": "(?i)(zu erledigen|beheben|temporär)", "language": "de", "severity": "medium"},
+            {"pattern": "(?i)(要做|修复|临时)", "language": "zh", "severity": "medium"},
+            {"pattern": "(?i)(やること|修正|一時的)", "language": "ja", "severity": "medium"}
+          ]
+        },
+        "allowed_exceptions": {
+          "type": "array",
+          "description": "Patterns that are allowed (e.g., in test files)",
+          "items": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string"
+              },
+              "file_pattern": {
+                "type": "string",
+                "description": "File glob pattern where this is allowed"
+              }
+            }
+          },
+          "example": [
+            {"pattern": "TODO", "file_pattern": "**/tests/**"}
+          ]
+        }
+      }
+    },
+    "drift_thresholds": {
+      "type": "object",
+      "description": "Custom drift detection thresholds",
+      "properties": {
+        "intent_similarity_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7,
+          "description": "Minimum similarity score to avoid intent drift"
+        },
+        "behavior_similarity_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7
+        },
+        "documentation_staleness_days": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 90,
+          "description": "Days before documentation is considered stale"
+        }
+      }
+    },
+    "documentation": {
+      "type": "object",
+      "description": "Documentation files to monitor for drift",
+      "properties": {
+        "readme_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["README.md", "README.rst", "README.txt"],
+          "description": "README files to analyze"
+        },
+        "doc_directories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": ["docs/", "documentation/", "wiki/"]
+        },
+        "required_sections": {
+          "type": "array",
+          "description": "Required sections in README",
+          "items": {
+            "type": "string"
+          },
+          "example": ["Installation", "Usage", "API Reference", "Contributing"]
+        }
+      }
+    },
+    "git_analysis": {
+      "type": "object",
+      "description": "Git-based drift detection configuration",
+      "properties": {
+        "analyze_recent_commits": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 2,
+          "description": "Number of recent commits to analyze"
+        },
+        "high_churn_threshold": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 10,
+          "description": "Number of changes to a file indicating high churn"
+        },
+        "protected_files": {
+          "type": "array",
+          "description": "Files that should rarely change",
+          "items": {
+            "type": "string"
+          },
+          "example": ["src/core/protocol.rs", "src/security/auth.rs"]
+        }
+      }
+    }
+  }
+}

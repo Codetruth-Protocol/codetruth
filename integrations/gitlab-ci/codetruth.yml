@@ -1,0 +1,56 @@
+# CodeTruth GitLab CI Template
+# Include this in your .gitlab-ci.yml:
+# include:
+#   - remote: 'https://raw.githubusercontent.com/codetruth/codetruth/main/integrations/gitlab-ci/codetruth.yml'
+
+.codetruth:
+  image: codetruth/ctp:latest
+  variables:
+    CTP_MIN_DRIFT_LEVEL: "medium"
+    CTP_FAIL_ON_VIOLATION: "false"
+    CTP_POLICIES_PATH: ".ctp/policies/"
+
+codetruth:analyze:
+  extends: .codetruth
+  stage: test
+  script:
+    - |
+      echo "Running CodeTruth Analysis..."
+      
+      # Get changed files for MR
+      if [ -n "$CI_MERGE_REQUEST_IID" ]; then
+        git diff --name-only $CI_MERGE_REQUEST_DIFF_BASE_SHA $CI_COMMIT_SHA > changed_files.txt
+      else
+        git diff --name-only HEAD~1 HEAD > changed_files.txt
+      fi
+      
+      # Run analysis
+      ctp ci-check \
+        --min-drift-level=$CTP_MIN_DRIFT_LEVEL \
+        --output=.ctp/output/analysis.json \
+        $(cat changed_files.txt | tr '\n' ' ')
+      
+      # Check policies if enabled
+      if [ "$CTP_CHECK_POLICIES" = "true" ]; then
+        ctp check --policies=$CTP_POLICIES_PATH $(cat changed_files.txt | tr '\n' ' ')
+      fi
+  artifacts:
+    paths:
+      - .ctp/output/
+    reports:
+      codequality: .ctp/output/codequality.json
+    when: always
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+codetruth:audit:
+  extends: .codetruth
+  stage: deploy
+  script:
+    - ctp audit --format=json --output=.ctp/output/audit-report.json
+  artifacts:
+    paths:
+      - .ctp/output/audit-report.json
+  rules:
+    - if: $CI_COMMIT_TAG

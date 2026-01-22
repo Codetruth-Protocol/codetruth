@@ -1,0 +1,19 @@
+[package]
+name = "ctp-llm"
+description = "LLM integration layer for CodeTruth Protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+# Internal crates
+ctp-context = { path = "../ctp-context" }

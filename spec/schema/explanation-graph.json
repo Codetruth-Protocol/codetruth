@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codetruth.dev/schema/v1/explanation-graph.json",
+  "title": "CTP Explanation Graph",
+  "description": "CodeTruth Protocol Explanation Graph v1.0",
+  "type": "object",
+  "required": ["ctp_version", "explanation_id", "module", "intent", "behavior", "drift"],
+  "properties": {
+    "ctp_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "explanation_id": {
+      "type": "string"
+    },
+    "module": {
+      "$ref": "#/$defs/module"
+    },
+    "intent": {
+      "$ref": "#/$defs/intent"
+    },
+    "behavior": {
+      "$ref": "#/$defs/behavior"
+    },
+    "drift": {
+      "$ref": "#/$defs/drift_analysis"
+    },
+    "policies": {
+      "$ref": "#/$defs/policy_results"
+    },
+    "history": {
+      "$ref": "#/$defs/history"
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    }
+  },
+  "$defs": {
+    "module": {
+      "type": "object",
+      "required": ["name", "path", "language"],
+      "properties": {
+        "name": { "type": "string" },
+        "path": { "type": "string" },
+        "language": { "type": "string" },
+        "lines_of_code": { "type": "integer", "minimum": 0 },
+        "complexity_score": { "type": "number", "minimum": 0 }
+      }
+    },
+    "intent": {
+      "type": "object",
+      "properties": {
+        "declared_intent": { "type": "string" },
+        "inferred_intent": { "type": "string" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "business_context": { "type": "string" },
+        "technical_rationale": { "type": "string" }
+      }
+    },
+    "behavior": {
+      "type": "object",
+      "properties": {
+        "actual_behavior": { "type": "string" },
+        "entry_points": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/entry_point" }
+        },
+        "exit_points": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/exit_point" }
+        },
+        "side_effects": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/side_effect" }
+        },
+        "dependencies": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/dependency" }
+        }
+      }
+    },
+    "entry_point": {
+      "type": "object",
+      "properties": {
+        "function": { "type": "string" },
+        "parameters": { "type": "array", "items": { "type": "string" } },
+        "preconditions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "exit_point": {
+      "type": "object",
+      "properties": {
+        "return_type": { "type": "string" },
+        "possible_values": { "type": "array", "items": { "type": "string" } },
+        "postconditions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "side_effect": {
+      "type": "object",
+      "properties": {
+        "effect_type": { "enum": ["io", "network", "database", "state_mutation"] },
+        "description": { "type": "string" },
+        "risk_level": { "enum": ["LOW", "MEDIUM", "HIGH"] }
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "properties": {
+        "module": { "type": "string" },
+        "reason": { "type": "string" },
+        "coupling_type": { "enum": ["tight", "loose"] }
+      }
+    },
+    "drift_analysis": {
+      "type": "object",
+      "required": ["drift_detected", "drift_severity"],
+      "properties": {
+        "drift_detected": { "type": "boolean" },
+        "drift_severity": { "enum": ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "drift_details": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/drift_detail" }
+        }
+      }
+    },
+    "drift_detail": {
+      "type": "object",
+      "properties": {
+        "drift_type": { "enum": ["INTENT", "POLICY", "ASSUMPTION", "IMPLEMENTATION"] },
+        "expected": { "type": "string" },
+        "actual": { "type": "string" },
+        "location": { "$ref": "#/$defs/location" },
+        "impact": { "$ref": "#/$defs/impact" },
+        "remediation": { "type": "string" }
+      }
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "file": { "type": "string" },
+        "line_start": { "type": "integer", "minimum": 1 },
+        "line_end": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "impact": {
+      "type": "object",
+      "properties": {
+        "functional": { "type": "string" },
+        "security": { "type": "string" },
+        "performance": { "type": "string" },
+        "maintainability": { "type": "string" }
+      }
+    },
+    "policy_results": {
+      "type": "object",
+      "properties": {
+        "evaluated_at": { "type": "string", "format": "date-time" },
+        "policy_results": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/policy_result" }
+        }
+      }
+    },
+    "policy_result": {
+      "type": "object",
+      "properties": {
+        "policy_id": { "type": "string" },
+        "policy_name": { "type": "string" },
+        "status": { "enum": ["PASS", "FAIL", "WARNING", "SKIP"] },
+        "violations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/violation" }
+        }
+      }
+    },
+    "violation": {
+      "type": "object",
+      "properties": {
+        "rule": { "type": "string" },
+        "severity": { "enum": ["INFO", "WARNING", "ERROR", "CRITICAL"] },
+        "message": { "type": "string" },
+        "location": { "$ref": "#/$defs/location" },
+        "evidence": { "type": "string" }
+      }
+    },
+    "history": {
+      "type": "object",
+      "properties": {
+        "previous_versions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "version_id": { "type": "string" },
+              "analyzed_at": { "type": "string", "format": "date-time" },
+              "commit_hash": { "type": "string" },
+              "drift_from_previous": { "type": "string" }
+            }
+          }
+        },
+        "evolution": {
+          "type": "object",
+          "properties": {
+            "created_at": { "type": "string", "format": "date-time" },
+            "last_modified": { "type": "string", "format": "date-time" },
+            "modification_count": { "type": "integer", "minimum": 0 },
+            "stability_score": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "generated_at": { "type": "string", "format": "date-time" },
+        "generator": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "version": { "type": "string" },
+            "llm_provider": { "type": "string" },
+            "llm_model": { "type": "string" }
+          }
+        },
+        "extensions": { "type": "object" }
+      }
+    }
+  }
+}

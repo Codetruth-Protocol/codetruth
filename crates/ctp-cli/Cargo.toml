@@ -1,0 +1,36 @@
+[package]
+name = "ctp-cli"
+description = "Command-line interface for CodeTruth Protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "ctp"
+path = "src/main.rs"
+
+[dependencies]
+ctp-core = { path = "../ctp-core" }
+ctp-context = { path = "../ctp-context" }
+ctp-spec = { path = "../ctp-spec", features = ["llm"] }
+ctp-storage = { path = "../ctp-storage" }
+
+clap = { workspace = true }
+tokio = { workspace = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = "0.9"
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+indicatif = "0.17"
+console = "0.15"
+walkdir = "2.4"
+chrono = "0.4"
+globset = "0.4"
+tower-lsp = "0.20"
+
+[dev-dependencies]
+tempfile = "3.0"

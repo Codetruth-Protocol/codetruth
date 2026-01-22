@@ -1,0 +1,39 @@
+[package]
+name = "ctp-core"
+description = "Core analysis engine for CodeTruth Protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+tracing = { workspace = true }
+parking_lot = { workspace = true }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4"] }
+rayon = { workspace = true }
+
+# Internal crates
+ctp-parser = { path = "../ctp-parser", features = ["all-languages"] }
+ctp-drift = { path = "../ctp-drift" }
+ctp-policy = { path = "../ctp-policy" }
+ctp-llm = { path = "../ctp-llm", optional = true }
+ctp-context = { path = "../ctp-context" }
+
+[features]
+default = []
+llm = ["ctp-llm"]
+
+[dev-dependencies]
+criterion = { workspace = true }
+tokio-test = "0.4"
+
+# [[bench]]
+# name = "analysis"
+# harness = false

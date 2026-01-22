@@ -1,0 +1,101 @@
+{
+  "ctp_version": "1.0.0",
+  "explanation_id": "sha256:abc123def456",
+  "module": {
+    "name": "payment_handler.py",
+    "path": "src/payments/payment_handler.py",
+    "language": "python",
+    "lines_of_code": 150,
+    "complexity_score": 12.5
+  },
+  "intent": {
+    "declared_intent": "Process payment transactions with retry logic and idempotency",
+    "inferred_intent": "Handle payment processing with exponential backoff retry and idempotency key validation",
+    "confidence": 0.92,
+    "business_context": "Core payment processing for e-commerce transactions",
+    "technical_rationale": "Implements idempotent payment processing to prevent duplicate charges during network failures"
+  },
+  "behavior": {
+    "actual_behavior": "Performs 3 function(s), network calls, database operations",
+    "entry_points": [
+      {
+        "function": "process_payment",
+        "parameters": ["amount", "currency", "customer_id", "idempotency_key"],
+        "preconditions": ["amount > 0", "valid currency code", "customer exists"]
+      }
+    ],
+    "exit_points": [
+      {
+        "return_type": "PaymentResult",
+        "possible_values": ["success", "failed", "pending"],
+        "postconditions": ["transaction recorded", "customer notified"]
+      }
+    ],
+    "side_effects": [
+      {
+        "effect_type": "database",
+        "description": "Records transaction in payments table",
+        "risk_level": "HIGH"
+      },
+      {
+        "effect_type": "network",
+        "description": "Calls external payment gateway API",
+        "risk_level": "MEDIUM"
+      }
+    ],
+    "dependencies": [
+      {
+        "module": "stripe",
+        "reason": "Payment gateway integration",
+        "coupling_type": "tight"
+      },
+      {
+        "module": "database",
+        "reason": "Transaction persistence",
+        "coupling_type": "loose"
+      }
+    ]
+  },
+  "drift": {
+    "drift_detected": false,
+    "drift_severity": "NONE",
+    "drift_details": []
+  },
+  "policies": {
+    "evaluated_at": "2026-01-16T20:00:00Z",
+    "policy_results": [
+      {
+        "policy_id": "payment-idempotency-001",
+        "policy_name": "Payment Retry Idempotency",
+        "status": "PASS",
+        "violations": []
+      }
+    ]
+  },
+  "history": {
+    "previous_versions": [
+      {
+        "version_id": "sha256:prev123",
+        "analyzed_at": "2026-01-10T15:00:00Z",
+        "commit_hash": "abc123",
+        "drift_from_previous": "Added idempotency key validation"
+      }
+    ],
+    "evolution": {
+      "created_at": "2025-06-01T10:00:00Z",
+      "last_modified": "2026-01-16T20:00:00Z",
+      "modification_count": 15,
+      "stability_score": 0.85
+    }
+  },
+  "metadata": {
+    "generated_at": "2026-01-16T20:04:00Z",
+    "generator": {
+      "name": "CodeTruth",
+      "version": "0.1.0",
+      "llm_provider": "anthropic",
+      "llm_model": "claude-sonnet-4-20250514"
+    },
+    "extensions": {}
+  }
+}

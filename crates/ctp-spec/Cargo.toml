@@ -1,0 +1,30 @@
+[package]
+name = "ctp-spec"
+description = "Product specification management and auto-generation for CodeTruth Protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = "0.9"
+toml = "0.8"
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+chrono = "0.4"
+
+# Internal crates
+ctp-core = { path = "../ctp-core" }
+ctp-llm = { path = "../ctp-llm", optional = true }
+ctp-drift = { path = "../ctp-drift" }
+
+[features]
+default = []
+llm = ["ctp-llm"]
+
+[dev-dependencies]
+tempfile = "3.0"

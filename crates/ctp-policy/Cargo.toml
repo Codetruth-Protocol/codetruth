@@ -1,0 +1,20 @@
+[package]
+name = "ctp-policy"
+description = "Policy evaluation engine for CodeTruth Protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = "0.9"
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+glob = "0.3"
+regex = "1.10"
+
+[dev-dependencies]
+tokio-test = "0.4"

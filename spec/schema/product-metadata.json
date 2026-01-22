@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codetruth.dev/schemas/product-metadata.json",
+  "title": "CTP Product Metadata",
+  "description": "Product sensitivity metadata for CodeTruth Protocol impact analysis",
+  "type": "object",
+  "required": ["name", "product_type", "users", "deployment"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Product name"
+    },
+    "product_type": {
+      "type": "string",
+      "enum": ["b2c_saas", "b2b_enterprise", "internal_tool", "mobile_app", "api_platform", "ecommerce", "financial_services", "healthcare", "unknown"],
+      "description": "Product type classification"
+    },
+    "users": {
+      "$ref": "#/$defs/UserMetrics"
+    },
+    "revenue": {
+      "$ref": "#/$defs/RevenueInfo"
+    },
+    "deployment": {
+      "$ref": "#/$defs/DeploymentInfo"
+    },
+    "compliance": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ComplianceRequirement"
+      },
+      "description": "Compliance requirements"
+    },
+    "critical_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Glob patterns for critical paths"
+    },
+    "criticality_map": {
+      "$ref": "#/$defs/CriticalityMap"
+    }
+  },
+  "$defs": {
+    "UserMetrics": {
+      "type": "object",
+      "properties": {
+        "total_users": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "daily_active_users": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "monthly_active_users": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "peak_concurrent_users": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UserSegment"
+          }
+        }
+      }
+    },
+    "UserSegment": {
+      "type": "object",
+      "required": ["name", "count", "priority"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "revenue_contribution": {
+          "type": "number"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"]
+        }
+      }
+    },
+    "RevenueInfo": {
+      "type": "object",
+      "required": ["model", "monthly_value"],
+      "properties": {
+        "model": {
+          "type": "string",
+          "enum": ["subscription", "transaction_fee", "advertising", "licensing", "freemium", "usage", "hybrid"]
+        },
+        "monthly_value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD"
+        },
+        "critical_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "DeploymentInfo": {
+      "type": "object",
+      "properties": {
+        "deployment_type": {
+          "type": "string",
+          "enum": ["kubernetes", "serverless", "virtual_machines", "containers", "bare_metal", "hybrid", "mobile_app_store", "unknown"]
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rollout_strategy": {
+          "type": "string",
+          "enum": ["all_at_once", "canary", "blue_green", "rolling", "feature_flags"]
+        },
+        "rollback_time_minutes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "supports_gradual_rollout": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ComplianceRequirement": {
+      "type": "object",
+      "required": ["standard"],
+      "properties": {
+        "standard": {
+          "type": "string",
+          "enum": ["PCI_DSS", "GDPR", "CCPA", "HIPAA", "SOX", "ISO27001", "SOC2", "FEDRAMP"]
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "CriticalityMap": {
+      "type": "object",
+      "properties": {
+        "critical": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Glob patterns for critical components"
+        },
+        "high": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Glob patterns for high-criticality components"
+        },
+        "medium": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Glob patterns for medium-criticality components"
+        },
+        "low": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Glob patterns for low-criticality components"
+        }
+      }
+    }
+  }
+}

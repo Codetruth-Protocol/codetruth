@@ -1,0 +1,54 @@
+# Rust
+/target/
+Cargo.lock
+
+# Node.js
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+.python-version
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.so
+*.dylib
+*.dll
+*.wasm
+
+# CTP output
+.ctp/output/
+.ctp/analyses/
+
+# Environment
+.env
+.env.local
+*.pem
+
+# Coverage
+coverage/
+*.lcov
+htmlcov/
+
+# Logs
+*.log
+logs/

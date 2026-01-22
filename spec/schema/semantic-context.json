@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codetruth.dev/schema/v1/semantic-context.json",
+  "title": "CTP Semantic Context",
+  "description": "Hierarchical semantic context for large codebase analysis without information loss",
+  "type": "object",
+  "required": ["id", "level", "essence"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for this context node"
+    },
+    "level": {
+      "$ref": "#/$defs/context_level"
+    },
+    "essence": {
+      "$ref": "#/$defs/essence"
+    },
+    "detail": {
+      "$ref": "#/$defs/detail_level"
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/relationship" }
+    },
+    "invariants": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/invariant" }
+    },
+    "parent_id": {
+      "type": "string",
+      "description": "Parent context ID (null for system level)"
+    },
+    "children": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Child context IDs"
+    },
+    "content_hash": {
+      "type": "string",
+      "description": "SHA256 hash for change detection"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "context_level": {
+      "type": "string",
+      "enum": ["system", "domain", "module", "function", "block"],
+      "description": "Level in the context hierarchy"
+    },
+    "essence": {
+      "type": "object",
+      "description": "The irreducible core meaning - NEVER truncated during compression",
+      "required": ["purpose", "role"],
+      "properties": {
+        "purpose": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "One-sentence purpose (max 100 chars)"
+        },
+        "role": {
+          "$ref": "#/$defs/component_role"
+        },
+        "constraints": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Critical constraints that MUST remain true"
+        },
+        "keywords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Keywords for semantic matching"
+        }
+      }
+    },
+    "component_role": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["system", "boundary", "core", "utility", "orchestrator", "data", "test", "config"]
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["inbound", "outbound", "bidirectional"],
+          "description": "For boundary roles only"
+        },
+        "domain": {
+          "type": "string",
+          "description": "For core roles - the business domain"
+        },
+        "used_by": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For utility roles - IDs of components using this"
+        },
+        "coordinates": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For orchestrator roles - IDs of coordinated components"
+        },
+        "schema_hash": {
+          "type": "string",
+          "description": "For data roles - hash of the data schema"
+        },
+        "tests": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For test roles - IDs of tested components"
+        }
+      }
+    },
+    "detail_level": {
+      "type": "object",
+      "description": "Expanded detail that CAN be compressed",
+      "properties": {
+        "full_description": {
+          "type": "string"
+        },
+        "implementation_notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "examples": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "token_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "required": ["target", "relationship_type"],
+      "properties": {
+        "target": {
+          "type": "string",
+          "description": "Target context ID"
+        },
+        "relationship_type": {
+          "type": "string",
+          "enum": ["calls", "depends_on", "duplicates", "extends", "co_changes", "tests", "configures", "contains", "sibling"]
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Coupling strength (0.0-1.0)"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why this relationship exists"
+        }
+      }
+    },
+    "invariant": {
+      "type": "object",
+      "required": ["id", "description", "severity"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+        },
+        "violation_patterns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Code patterns that indicate violation"
+        },
+        "correct_example": {
+          "type": "string",
+          "description": "Example of correct usage"
+        }
+      }
+    }
+  }
+}

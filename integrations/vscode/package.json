@@ -1,0 +1,113 @@
+{
+  "name": "codetruth-vscode",
+  "displayName": "CodeTruth",
+  "description": "AI Code Intelligence & Drift Monitoring",
+  "version": "0.1.0",
+  "publisher": "codetruth",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "codetruth",
+    "ctp",
+    "code-analysis",
+    "drift-detection",
+    "ai-governance"
+  ],
+  "activationEvents": [
+    "onLanguage:python",
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:rust",
+    "onLanguage:go",
+    "onLanguage:java"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codetruth.analyzeFile",
+        "title": "CodeTruth: Analyze Current File"
+      },
+      {
+        "command": "codetruth.analyzeWorkspace",
+        "title": "CodeTruth: Analyze Workspace"
+      },
+      {
+        "command": "codetruth.checkPolicies",
+        "title": "CodeTruth: Check Policy Compliance"
+      },
+      {
+        "command": "codetruth.showExplanation",
+        "title": "CodeTruth: Show Explanation Graph"
+      }
+    ],
+    "configuration": {
+      "title": "CodeTruth",
+      "properties": {
+        "codetruth.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable CodeTruth analysis"
+        },
+        "codetruth.analyzeOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run analysis on file save"
+        },
+        "codetruth.minDriftLevel": {
+          "type": "string",
+          "enum": ["none", "low", "medium", "high", "critical"],
+          "default": "medium",
+          "description": "Minimum drift level to display"
+        },
+        "codetruth.policiesPath": {
+          "type": "string",
+          "default": ".ctp/policies/",
+          "description": "Path to policy files"
+        },
+        "codetruth.llm.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable LLM enhancement"
+        },
+        "codetruth.llm.provider": {
+          "type": "string",
+          "enum": ["anthropic", "openai", "ollama"],
+          "default": "anthropic",
+          "description": "LLM provider"
+        }
+      }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "codetruthExplorer",
+          "name": "CodeTruth",
+          "icon": "$(shield)"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  },
+  "dependencies": {
+    "@codetruth/sdk": "^0.1.0"
+  }
+}

@@ -1,0 +1,73 @@
+# Example CTP Policy Definition
+ctp_version: "1.0.0"
+policy_schema_version: "1.0.0"
+
+policy:
+  id: "payment-idempotency-001"
+  name: "Payment Retry Idempotency"
+  description: |
+    All payment retry logic must implement idempotency
+    safeguards to prevent duplicate charges.
+  
+  scope:
+    include:
+      - "services/payments/**/*.{py,js,ts,go}"
+      - "lib/payment_processing/**"
+    exclude:
+      - "**/*_test.*"
+      - "**/*.spec.*"
+  
+  severity: "CRITICAL"
+  
+  rules:
+    - rule_id: "idempotency-key-check"
+      type: "behavior_pattern"
+      requires:
+        - pattern: "retry"
+          context: "payment|transaction|charge"
+        - pattern: "idempotency_key|idempotent_id|request_id"
+          must_exist: true
+        - pattern: "exponential_backoff|exp_backoff|jittered_retry"
+          must_exist: true
+      
+      violation_message: |
+        Payment retry logic detected without idempotency safeguards.
+        All payment retries MUST include:
+        1. Unique idempotency key generation
+        2. Exponential backoff with jitter
+        3. Maximum retry limit
+      
+      remediation: |
+        Add idempotency key handling:
+        ```python
+        idempotency_key = f"{user_id}_{transaction_id}_{attempt}"
+        retry_with_backoff(
+            operation=charge_payment,
+            idempotency_key=idempotency_key,
+            max_retries=3,
+            backoff_multiplier=2.0
+        )
+        ```
+  
+  enforcement:
+    block_merge: true
+    notify:
+      - "@payments-team"
+      - "@security-team"
+    require_approval_from:
+      - "CODEOWNER"
+      - "payments-lead"
+  
+  exceptions:
+    - file: "services/payments/legacy_processor.py"
+      reason: "Legacy system, scheduled for replacement Q2 2026"
+      approved_by: "cto@company.com"
+      expires_at: "2026-06-30"
+
+  metadata:
+    created_by: "security-team"
+    created_at: "2026-01-15"
+    last_updated: "2026-01-16"
+    references:
+      - "https://stripe.com/docs/api/idempotent_requests"
+      - "internal-docs/payment-standards.md"
