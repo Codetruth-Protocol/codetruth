@@ -284,6 +284,23 @@ pub struct MinimalAnalysis {
     pub confidence: f64,
 }
 
+/// Result of a full codebase analysis with cross-file context
+#[derive(Debug, Clone)]
+pub struct CodebaseAnalysis {
+    /// Individual file analysis results
+    pub graphs: Vec<ExplanationGraph>,
+    /// Hierarchical semantic contexts built from the analysis
+    pub contexts: Vec<ctp_context::SemanticContext>,
+    /// System-level context (root of hierarchy)
+    pub system_context: Option<ctp_context::SemanticContext>,
+    /// Detected redundancies: (source_id, target_id, similarity)
+    pub redundancies: Vec<(ctp_context::ContextId, ctp_context::ContextId, f64)>,
+    /// Codebase-level statistics
+    pub stats: crate::context_bridge::CodebaseStats,
+    /// Files that failed to analyze: (path, error message)
+    pub errors: Vec<(String, String)>,
+}
+
 impl From<ExplanationGraph> for MinimalAnalysis {
     fn from(graph: ExplanationGraph) -> Self {
         MinimalAnalysis {

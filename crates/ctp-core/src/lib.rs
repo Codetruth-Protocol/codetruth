@@ -11,10 +11,12 @@
 pub mod engine;
 pub mod models;
 pub mod error;
+pub mod cache;
 pub mod context_bridge;
 pub mod naming_patterns;
 pub mod detectors;
 pub mod criticality;
+pub mod call_graph;
 pub mod coverage;
 
 pub use engine::{CodeTruthEngine, EngineConfig};

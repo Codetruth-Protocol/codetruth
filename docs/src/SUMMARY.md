@@ -12,6 +12,10 @@
   - [Explanation Graphs](./guide/explanation-graphs.md)
   - [Drift Detection](./guide/drift-detection.md)
   - [Policy Evaluation](./guide/policy-evaluation.md)
+- [Reliability System](./guide/reliability-system.md)
+  - [Critical Weight Scoring](./guide/critical-weight-scoring.md)
+  - [Data Architecture Mapping](./guide/data-architecture-mapping.md)
+  - [Reliability, Criticality, and Rule-Packs](./guide/reliability-criticality.md)
 - [CLI Reference](./guide/cli.md)
 
 # Integration

@@ -12,6 +12,7 @@ use ctp_drift::{DriftDetector, DriftConfig};
 use ctp_parser::CTPParser;
 use ctp_policy::PolicyEngine;
 
+use crate::cache::AnalysisCache;
 use crate::error::{CTPError, CTPResult};
 use crate::models::*;
 use crate::detectors::DetectorsRegistry;
@@ -76,6 +77,7 @@ pub struct CodeTruthEngine {
     policy_engine: Arc<RwLock<PolicyEngine>>,
     naming_detector: Arc<RwLock<NamingPatternDetector>>,
     detectors: DetectorsRegistry,
+    cache: Arc<RwLock<Option<AnalysisCache>>>,
 }
 
 impl CodeTruthEngine {
@@ -103,7 +105,40 @@ impl CodeTruthEngine {
             policy_engine,
             naming_detector,
             detectors,
+            cache: Arc::new(RwLock::new(None)),
         }
+    }
+
+    /// Enable incremental analysis by loading or creating a cache
+    pub fn enable_cache(&self, cache_path: &Path) -> CTPResult<()> {
+        let policy_hash = self.compute_policy_hash();
+        let cache = AnalysisCache::load(cache_path, crate::VERSION, &policy_hash);
+        *self.cache.write() = Some(cache);
+        info!("Incremental analysis cache enabled");
+        Ok(())
+    }
+
+    /// Save the analysis cache to disk
+    pub fn save_cache(&self, cache_path: &Path) -> CTPResult<()> {
+        let mut cache_guard = self.cache.write();
+        if let Some(ref mut cache) = *cache_guard {
+            cache.save(cache_path)
+                .map_err(|e| CTPError::IoError(e))?;
+        }
+        Ok(())
+    }
+
+    /// Get cache statistics (returns None if cache is not enabled)
+    pub fn cache_stats(&self) -> Option<crate::cache::CacheStats> {
+        self.cache.read().as_ref().map(|c| c.stats())
+    }
+
+    fn compute_policy_hash(&self) -> String {
+        let engine = self.policy_engine.read();
+        let mut hasher = Sha256::new();
+        // Hash the policy engine state for cache invalidation
+        hasher.update(format!("{:?}", engine.policy_count()).as_bytes());
+        format!("{:x}", hasher.finalize())
     }
 
     /// Create a new engine with default configuration
@@ -145,6 +180,65 @@ impl CodeTruthEngine {
             .collect()
     }
 
+    /// Analyze a codebase: all files + cross-file context building
+    ///
+    /// Returns individual file results AND a hierarchical context tree
+    /// that captures system-level relationships, redundancies, and invariants.
+    pub async fn analyze_codebase(
+        &self,
+        project_name: &str,
+        project_purpose: &str,
+        paths: &[&Path],
+        dependencies: &[(String, Vec<String>)],
+    ) -> CTPResult<CodebaseAnalysis> {
+        use crate::context_bridge::CodebaseContextBuilder;
+
+        // Phase 1: Analyze individual files (with incremental cache)
+        let file_results = self.analyze_files(paths).await;
+
+        let mut graphs = Vec::new();
+        let mut errors = Vec::new();
+        for (i, result) in file_results.into_iter().enumerate() {
+            match result {
+                Ok(graph) => graphs.push(graph),
+                Err(e) => errors.push((paths[i].display().to_string(), e.to_string())),
+            }
+        }
+
+        // Phase 2: Build hierarchical context tree
+        let mut builder = CodebaseContextBuilder::new()
+            .with_system(project_name, project_purpose);
+
+        for graph in &graphs {
+            if let Err(e) = builder.add_graph(graph) {
+                debug!("Context builder skipped {}: {}", graph.module.path, e);
+            }
+        }
+
+        // Phase 3: Build cross-file relationships from dependency info
+        builder.build_relationships(dependencies);
+
+        // Phase 4: Detect codebase-level redundancies
+        let redundancies = builder.find_redundancies();
+        let stats = builder.stats();
+
+        info!(
+            "Codebase analysis: {} files, {} components, {} redundancies",
+            graphs.len(),
+            stats.total_components,
+            stats.redundancy_count
+        );
+
+        Ok(CodebaseAnalysis {
+            graphs,
+            contexts: builder.contexts().to_vec(),
+            system_context: builder.system().cloned(),
+            redundancies,
+            stats,
+            errors,
+        })
+    }
+
     /// Analyze naming patterns in a directory
     pub fn analyze_naming_patterns(&self, directory_path: &Path) -> CTPResult<NamingAnalysisResult> {
         let mut detector = self.naming_detector.write();
@@ -177,6 +271,19 @@ impl CodeTruthEngine {
 
         // Generate content hash
         let content_hash = self.hash_content(&content);
+
+        // Check incremental cache — skip analysis if unchanged
+        {
+            let cache_guard = self.cache.read();
+            if let Some(ref cache) = *cache_guard {
+                let file_key = path.display().to_string();
+                if let Some(cached_result) = cache.get(&file_key, &content_hash) {
+                    let elapsed = start.elapsed();
+                    debug!("Cache hit for {} ({:?})", file_key, elapsed);
+                    return Ok(cached_result.clone());
+                }
+            }
+        }
 
         // Parse with tree-sitter for complexity metrics
         let complexity_score = {
@@ -360,9 +467,9 @@ impl CodeTruthEngine {
         let elapsed = start.elapsed();
         info!("Analysis completed in {:?}", elapsed);
 
-        Ok(ExplanationGraph {
+        let result = ExplanationGraph {
             ctp_version: CTP_VERSION.into(),
-            explanation_id: content_hash,
+            explanation_id: content_hash.clone(),
             module,
             intent,
             behavior,
@@ -370,7 +477,19 @@ impl CodeTruthEngine {
             policies,
             history,
             metadata,
-        })
+        };
+
+        // Store result in incremental cache
+        {
+            let mut cache_guard = self.cache.write();
+            if let Some(ref mut cache) = *cache_guard {
+                let file_key = path.display().to_string();
+                cache.put(&file_key, &content_hash, result.clone());
+                debug!("Cached analysis for {}", file_key);
+            }
+        }
+
+        Ok(result)
     }
 
     /// Analyze code from a string (useful for WASM)
