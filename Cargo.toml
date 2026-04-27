@@ -24,6 +24,7 @@ resolver = "2"
 members = [
     "crates/ctp-core",
     "crates/ctp-cli",
+    "crates/ctp-mcp",
     "crates/ctp-parser",
     "crates/ctp-drift",
     "crates/ctp-policy",
