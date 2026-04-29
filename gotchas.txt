@@ -1,0 +1,22 @@
+1. Framework gotchas (e.g. Laravel)
+generating database migrations - use commands when possible to avoid generating date in the past
+
+creating new jobs for dispatch in Laravel - ensure queue exists and is configured on horizon
+
+Have a reliable way of understanding db structure (e.g. indexes, partitions, sharding, foreign keys) to ensure new queries, migrations, are correct
+
+Simple UI updates that can be achieved with css, implemented with complex javascript
+
+Switching package managers, e.g. yarn.lock is introduced whereas we only had a package.lock or vice versa
+
+
+Also API responses returned with a HTTP Resource transform or transformer may have extra keys making it a bit longer to get api responses e.g. response.data.data (we could track consistency in such accesses from the API endpoints). This is also common in non strict type frameworks not just Laravel.
+
+In react native and react, there are scrolling gotchas like adding some bottom padding  or setting heights on the proper root container
+
+2. Have a reliable way of detecting bloat and functionality duplication
+
+e.g. double toast of the same message, three different function doing the exact same thing in different ways (e.g. formatFileSize, formatFileBytes, formatBytes) or in different files
+
+3. Detection of critical functionality + enforcement of tests for all critical functionality - How to make this perfectly accurate?
+

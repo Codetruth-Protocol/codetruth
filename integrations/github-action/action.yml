@@ -50,14 +50,19 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Setup CTP
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+
+    - name: Build ctp-mcp
       shell: bash
       run: |
-        echo "Installing CodeTruth CLI..."
-        curl -fsSL https://codetruth.dev/install.sh | sh || {
-          echo "Falling back to cargo install..."
-          cargo install ctp-cli
-        }
+        echo "Building ctp-mcp server..."
+        cd ${{ github.action_path }}/../../
+        cargo build --release --bin ctp-mcp
+        echo "ctp-mcp built successfully"
 
     - name: Get changed files
       id: changed-files
@@ -71,31 +76,56 @@ runs:
         echo "Changed files:"
         cat changed_files.txt
 
-    - name: Run CTP Analysis
+    - name: Run ctp-mcp Analysis
       shell: bash
       run: |
-        ARGS=""
+        mkdir -p .ctp/output
         
-        if [ "${{ inputs.analyze }}" = "true" ]; then
-          ARGS="$ARGS --analyze"
+        # Build JSON-RPC request for analyze_codebase
+        REQUEST='{
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "tools/call",
+          "params": {
+            "name": "analyze_codebase",
+            "arguments": {
+              "root_path": ".",
+              "project_name": "${{ github.repository }}",
+              "project_purpose": "CI/CD Compliance Check"
+            }
+          }
+        }'
+        
+        # Run ctp-mcp and capture output
+        echo "$REQUEST" | ${{ github.action_path }}/../../target/release/ctp-mcp > .ctp/output/analysis.json
+        
+        echo "Analysis complete. Results:"
+        cat .ctp/output/analysis.json
+
+    - name: Parse Analysis Results
+      id: parse-results
+      shell: bash
+      run: |
+        if [ -f .ctp/output/analysis.json ]; then
+          # Extract violation count using jq or basic parsing
+          if command -v jq &> /dev/null; then
+            VIOLATIONS=$(jq '.total_violations // 0' .ctp/output/analysis.json)
+            DRIFT=$(jq '.drift_count // 0' .ctp/output/analysis.json)
+          else
+            # Fallback: basic grep
+            VIOLATIONS=$(grep -o '"total_violations":[0-9]*' .ctp/output/analysis.json | cut -d: -f2 || echo "0")
+            DRIFT=$(grep -o '"drift_count":[0-9]*' .ctp/output/analysis.json | cut -d: -f2 || echo "0")
+          fi
+          
+          echo "violations-count=$VIOLATIONS" >> $GITHUB_OUTPUT
+          echo "drift-detected=$([ "$DRIFT" -gt 0 ] && echo "true" || echo "false")" >> $GITHUB_OUTPUT
+          echo "analysis-report=.ctp/output/analysis.json" >> $GITHUB_OUTPUT
+          
+          if [ "${{ inputs.fail-on-violation }}" = "true" ] && [ "$VIOLATIONS" -gt 0 ]; then
+            echo "::error::Found $VIOLATIONS policy violations"
+            exit 1
+          fi
         fi
-        
-        if [ "${{ inputs.check-policies }}" = "true" ]; then
-          ARGS="$ARGS --check-policies --policies-path=${{ inputs.policies-path }}"
-        fi
-        
-        if [ "${{ inputs.detect-drift }}" = "true" ]; then
-          ARGS="$ARGS --detect-drift"
-        fi
-        
-        if [ "${{ inputs.fail-on-violation }}" = "true" ]; then
-          ARGS="$ARGS --fail-on-violation"
-        fi
-        
-        ARGS="$ARGS --min-drift-level=${{ inputs.min-drift-level }}"
-        ARGS="$ARGS --output=.ctp/output/analysis.json"
-        
-        ctp ci-check $ARGS $(cat changed_files.txt | tr '\n' ' ')
 
     - name: Post PR Comment
       if: inputs.post-comment == 'true' && github.event_name == 'pull_request'
@@ -103,5 +133,25 @@ runs:
       run: |
         if [ -f .ctp/output/analysis.json ]; then
           echo "Posting analysis results to PR..."
-          # Comment posting logic would go here
+          
+          # Create comment body
+          COMMENT_BODY="## 🔍 CodeTruth Analysis Results
+          
+          **Repository:** ${{ github.repository }}
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.head_ref }}
+          
+          \`\`\`json
+          $(cat .ctp/output/analysis.json)
+          \`\`\`
+          
+          [View Full Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          "
+          
+          # Post comment using GitHub CLI
+          if command -v gh &> /dev/null; then
+            gh pr comment ${{ github.event.pull_request.number }} --body "$COMMENT_BODY"
+          else
+            echo "GitHub CLI not found, skipping comment posting"
+          fi
         fi

@@ -1,0 +1,352 @@
+{
+  "ctp_version": "1.0.0",
+  "product": {
+    "name": "Unknown",
+    "product_type": "library",
+    "version": null,
+    "primary_language": "rust",
+    "natural_language": "en",
+    "supported_languages": [
+      "en"
+    ],
+    "currency": null
+  },
+  "demographics": null,
+  "core_functionalities": [
+    {
+      "id": "api",
+      "name": "Api",
+      "category": "essential",
+      "criticality": "medium",
+      "description": "Api functionality (3 related files discovered)",
+      "entry_points": [
+        {
+          "file": "\\crates\\ctp-cli\\src\\engine_config.rs",
+          "function": "build_engine",
+          "module": "engine_config.rs"
+        },
+        {
+          "file": "\\packages\\ctp-python\\python\\codetruth\\client.py",
+          "function": "__init__",
+          "module": "client.py"
+        },
+        {
+          "file": "\\packages\\ctp-typescript\\src\\client.ts",
+          "function": "constructor",
+          "module": "client.ts"
+        }
+      ],
+      "dependencies": [],
+      "metrics": null,
+      "status": "active",
+      "last_verified": "2026-01-21T22:33:57.063263500+00:00",
+      "business_context": "",
+      "technical_rationale": "Discovered from 3 related files",
+      "confidence": 0.7
+    },
+    {
+      "id": "core",
+      "name": "Core",
+      "category": "enhancement",
+      "criticality": "medium",
+      "description": "Core functionality (4 related files discovered)",
+      "entry_points": [
+        {
+          "file": "\\crates\\ctp-context\\src\\context.rs",
+          "function": "new",
+          "module": "context.rs"
+        },
+        {
+          "file": "\\crates\\ctp-core\\src\\models.rs",
+          "function": "from",
+          "module": "models.rs"
+        },
+        {
+          "file": "\\packages\\ctp-python\\python\\codetruth\\types.py",
+          "function": null,
+          "module": "types.py"
+        },
+        {
+          "file": "\\packages\\ctp-typescript\\src\\types.ts",
+          "function": null,
+          "module": "types.ts"
+        }
+      ],
+      "dependencies": [],
+      "metrics": null,
+      "status": "active",
+      "last_verified": "2026-01-21T22:33:57.063265+00:00",
+      "business_context": "",
+      "technical_rationale": "Discovered from 4 related files",
+      "confidence": 0.7
+    },
+    {
+      "id": "product",
+      "name": "Product",
+      "category": "enhancement",
+      "criticality": "high",
+      "description": "Product functionality (5 related files discovered)",
+      "entry_points": [
+        {
+          "file": "\\crates\\ctp-cli\\src\\spec_commands.rs",
+          "function": "cmd_spec_generate",
+          "module": "spec_commands.rs"
+        },
+        {
+          "file": "\\crates\\ctp-product\\src\\metadata.rs",
+          "function": "from_file",
+          "module": "metadata.rs"
+        },
+        {
+          "file": "\\crates\\ctp-spec\\src\\generator.rs",
+          "function": "new",
+          "module": "generator.rs"
+        },
+        {
+          "file": "\\crates\\ctp-spec\\src\\lib.rs",
+          "function": "new",
+          "module": "lib.rs"
+        },
+        {
+          "file": "\\crates\\ctp-spec\\src\\validator.rs",
+          "function": "new",
+          "module": "validator.rs"
+        }
+      ],
+      "dependencies": [],
+      "metrics": null,
+      "status": "active",
+      "last_verified": "2026-01-21T22:33:57.063266400+00:00",
+      "business_context": "",
+      "technical_rationale": "Discovered from 5 related files",
+      "confidence": 0.7
+    },
+    {
+      "id": "codetruth",
+      "name": "Codetruth",
+      "category": "enhancement",
+      "criticality": "medium",
+      "description": "Codetruth functionality (3 related files discovered)",
+      "entry_points": [
+        {
+          "file": "\\crates\\ctp-cli\\src\\main.rs",
+          "function": "parse_drift_severity",
+          "module": "main.rs"
+        },
+        {
+          "file": "\\integrations\\vscode\\src\\extension.ts",
+          "function": "activate",
+          "module": "extension.ts"
+        },
+        {
+          "file": "\\packages\\ctp-python\\python\\codetruth\\__init__.py",
+          "function": null,
+          "module": "__init__.py"
+        }
+      ],
+      "dependencies": [],
+      "metrics": null,
+      "status": "active",
+      "last_verified": "2026-01-21T22:33:57.063267900+00:00",
+      "business_context": "",
+      "technical_rationale": "Discovered from 3 related files",
+      "confidence": 0.7
+    },
+    {
+      "id": "design",
+      "name": "Design",
+      "category": "enhancement",
+      "criticality": "medium",
+      "description": "Design functionality (3 related files discovered)",
+      "entry_points": [
+        {
+          "file": "\\crates\\ctp-design\\src\\baseline.rs",
+          "function": "new",
+          "module": "baseline.rs"
+        },
+        {
+          "file": "\\crates\\ctp-design\\src\\deviation.rs",
+          "function": "default",
+          "module": "deviation.rs"
+        },
+        {
+          "file": "\\crates\\ctp-design\\src\\tokens.rs",
+          "function": "from_hex",
+          "module": "tokens.rs"
+        }
+      ],
+      "dependencies": [],
+      "metrics": null,
+      "status": "active",
+      "last_verified": "2026-01-21T22:33:57.063269100+00:00",
+      "business_context": "",
+      "technical_rationale": "Discovered from 3 related files",
+      "confidence": 0.7
+    },
+    {
+      "id": "file",
+      "name": "File",
+      "category": "enhancement",
+      "criticality": "medium",
+      "description": "File functionality (3 related files discovered)",
+      "entry_points": [
+        {
+          "file": "\\crates\\ctp-design\\src\\extractor.rs",
+          "function": "new",
+          "module": "extractor.rs"
+        },
+        {
+          "file": "\\tests\\fixtures\\sample_python.py",
+          "function": "factorial",
+          "module": "sample_python.py"
+        },
+        {
+          "file": "\\tests\\fixtures\\sample_typescript.ts",
+          "function": "factorial",
+          "module": "sample_typescript.ts"
+        }
+      ],
+      "dependencies": [],
+      "metrics": null,
+      "status": "active",
+      "last_verified": "2026-01-21T22:33:57.063270200+00:00",
+      "business_context": "",
+      "technical_rationale": "Discovered from 3 related files",
+      "confidence": 0.7
+    },
+    {
+      "id": "error",
+      "name": "Error",
+      "category": "enhancement",
+      "criticality": "medium",
+      "description": "Error functionality (3 related files discovered)",
+      "entry_points": [
+        {
+          "file": "\\crates\\ctp-context\\src\\error.rs",
+          "function": null,
+          "module": "error.rs"
+        },
+        {
+          "file": "\\crates\\ctp-core\\src\\error.rs",
+          "function": null,
+          "module": "error.rs"
+        },
+        {
+          "file": "\\crates\\ctp-drift\\src\\error_suppression.rs",
+          "function": "severity",
+          "module": "error_suppression.rs"
+        }
+      ],
+      "dependencies": [],
+      "metrics": null,
+      "status": "active",
+      "last_verified": "2026-01-21T22:33:57.063271300+00:00",
+      "business_context": "",
+      "technical_rationale": "Discovered from 3 related files",
+      "confidence": 0.7
+    },
+    {
+      "id": "#",
+      "name": "#",
+      "category": "enhancement",
+      "criticality": "high",
+      "description": "# functionality (8 related files discovered)",
+      "entry_points": [
+        {
+          "file": "\\crates\\ctp-context\\src\\lib.rs",
+          "function": null,
+          "module": "lib.rs"
+        },
+        {
+          "file": "\\crates\\ctp-core\\src\\lib.rs",
+          "function": null,
+          "module": "lib.rs"
+        },
+        {
+          "file": "\\crates\\ctp-design\\src\\lib.rs",
+          "function": null,
+          "module": "lib.rs"
+        },
+        {
+          "file": "\\crates\\ctp-drift\\src\\lib.rs",
+          "function": "default",
+          "module": "lib.rs"
+        },
+        {
+          "file": "\\crates\\ctp-llm\\src\\lib.rs",
+          "function": "default",
+          "module": "lib.rs"
+        },
+        {
+          "file": "\\crates\\ctp-parser\\src\\lib.rs",
+          "function": "from_extension",
+          "module": "lib.rs"
+        },
+        {
+          "file": "\\crates\\ctp-policy\\src\\lib.rs",
+          "function": "new",
+          "module": "lib.rs"
+        },
+        {
+          "file": "\\packages\\ctp-wasm\\src\\lib.rs",
+          "function": "new",
+          "module": "lib.rs"
+        }
+      ],
+      "dependencies": [],
+      "metrics": null,
+      "status": "active",
+      "last_verified": "2026-01-21T22:33:57.063275200+00:00",
+      "business_context": "",
+      "technical_rationale": "Discovered from 8 related files",
+      "confidence": 0.7
+    },
+    {
+      "id": "component",
+      "name": "Component",
+      "category": "enhancement",
+      "criticality": "low",
+      "description": "Component functionality (2 related files discovered)",
+      "entry_points": [
+        {
+          "file": "\\crates\\ctp-context\\src\\registry.rs",
+          "function": "new",
+          "module": "registry.rs"
+        },
+        {
+          "file": "\\crates\\ctp-product\\src\\criticality.rs",
+          "function": "impact_multiplier",
+          "module": "criticality.rs"
+        }
+      ],
+      "dependencies": [],
+      "metrics": null,
+      "status": "active",
+      "last_verified": "2026-01-21T22:33:57.063276300+00:00",
+      "business_context": "",
+      "technical_rationale": "Discovered from 2 related files",
+      "confidence": 0.7
+    }
+  ],
+  "technical_constraints": {
+    "max_response_time_ms": null,
+    "max_memory_mb": null,
+    "supported_platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ],
+    "minimum_test_coverage": null
+  },
+  "development_markers": null,
+  "drift_thresholds": {
+    "intent_similarity_threshold": 0.7,
+    "behavior_similarity_threshold": 0.7,
+    "documentation_staleness_days": 90
+  },
+  "documentation": null,
+  "git_analysis": null,
+  "confidence": 0.65,
+  "generation_method": "rule_based",
+  "last_updated": "2026-01-21T22:33:57.063390+00:00"
+}

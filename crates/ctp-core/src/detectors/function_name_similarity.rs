@@ -89,7 +89,6 @@ impl FunctionNameSimilarityDetector {
             (r"^\s*(?:pub\s+)?fn\s+(\w+)\s*\(", "rust"),
             (r"^\s*def\s+(\w+)\s*\(", "python"),
             (r"^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(", "javascript"),
-            (r"^\s*(?:public\s+|private\s+|protected\s+)?function\s+(\w+)\s*\(", "php"),
             (r"^\s*func\s+(\w+)\s*\(", "go"),
         ];
 

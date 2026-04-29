@@ -264,7 +264,6 @@ pub fn language_from_extension(ext: &str) -> Option<&'static str> {
         "go" => Some("go"),
         "java" => Some("java"),
         "rb" => Some("ruby"),
-        "php" => Some("php"),
         "c" | "h" => Some("c"),
         "cpp" | "cc" | "cxx" | "hpp" => Some("cpp"),
         "cs" => Some("csharp"),

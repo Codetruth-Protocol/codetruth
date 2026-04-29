@@ -44,6 +44,10 @@
       {
         "command": "codetruth.showExplanation",
         "title": "CodeTruth: Show Explanation Graph"
+      },
+      {
+        "command": "codetruth.detectStubs",
+        "title": "CodeTruth: Detect Stubs and TODOs"
       }
     ],
     "configuration": {
@@ -70,16 +74,10 @@
           "default": ".ctp/policies/",
           "description": "Path to policy files"
         },
-        "codetruth.llm.enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable LLM enhancement"
-        },
-        "codetruth.llm.provider": {
+        "codetruth.mcpServerPath": {
           "type": "string",
-          "enum": ["anthropic", "openai", "ollama"],
-          "default": "anthropic",
-          "description": "LLM provider"
+          "default": "ctp-mcp",
+          "description": "Path to ctp-mcp binary (or 'ctp-mcp' if in PATH)"
         }
       }
     },
@@ -108,6 +106,5 @@
     "@typescript-eslint/parser": "^6.0.0"
   },
   "dependencies": {
-    "@codetruth/sdk": "^0.1.0"
   }
 }

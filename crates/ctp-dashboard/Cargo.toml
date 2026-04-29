@@ -1,0 +1,31 @@
+[package]
+name = "ctp-dashboard"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+ctp-core = { path = "../ctp-core" }
+ctp-policy = { path = "../ctp-policy" }
+ctp-utils = { path = "../ctp-utils" }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Web framework
+actix-web = "4.4"
+actix-cors = "0.6"
+
+# Templating
+tera = "1.19"
+
+# Date/time
+chrono = { version = "0.4", features = ["serde"] }
+
+[features]
+default = []

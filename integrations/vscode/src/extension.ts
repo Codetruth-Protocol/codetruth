@@ -1,13 +1,125 @@
 /**
  * CodeTruth VS Code Extension
- * 
+ *
  * Provides AI Code Intelligence & Drift Monitoring directly in VS Code.
+ * Uses MCP server (ctp-mcp) for analysis.
  */
 
 import * as vscode from 'vscode';
-import * as cp from 'child_process';
 import * as path from 'path';
+import { MCPClient } from './mcpClient';
 
+// MCP Tool Output Interfaces
+interface AnalyzeFileOutput {
+  file_path: string;
+  language: string;
+  lines_of_code: number;
+  complexity_score: number;
+  inferred_intent: string;
+  intent_confidence: number;
+  entry_points: string[];
+  side_effects: string[];
+  drift_detected: boolean;
+  drift_details?: string;
+  violations: ComplianceViolation[];
+}
+
+interface ComplianceViolation {
+  file_path: string;
+  line_number?: number;
+  severity: string;
+  policy: string;
+  description: string;
+  suggestion?: string;
+  rule_id: string;
+}
+
+interface CheckComplianceOutput {
+  path: string;
+  files_analyzed: number;
+  total_violations: number;
+  violations_by_severity: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  violations: ComplianceViolation[];
+}
+
+interface DetectDriftOutput {
+  path: string;
+  has_drift: boolean;
+  drift_count: number;
+  files_analyzed: number;
+  findings: DriftFinding[];
+}
+
+interface DriftFinding {
+  file_path: string;
+  line_number: number;
+  drift_type: string;
+  severity: string;
+  description: string;
+  declared_intent: string;
+  actual_behavior: string;
+  suggestion?: string;
+}
+
+interface AnalyzeCodebaseOutput {
+  project_name: string;
+  total_files: number;
+  files_with_violations: number;
+  total_violations: number;
+  redundancies: RedundancyFinding[];
+  critical_components: CriticalComponent[];
+  stats: {
+    total_components: number;
+    redundancy_count: number;
+    average_complexity: number;
+    total_lines_of_code: number;
+  };
+}
+
+interface RedundancyFinding {
+  redundancy_type: string;
+  description: string;
+  files: string[];
+  confidence: number;
+}
+
+interface CriticalComponent {
+  name: string;
+  file_path: string;
+  rationale: string;
+  level: string;
+}
+
+interface DetectStubsOutput {
+  path: string;
+  files_analyzed: number;
+  total_stubs_found: number;
+  has_critical_stubs: boolean;
+  stubs_by_severity: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  findings: StubFinding[];
+}
+
+interface StubFinding {
+  file_path: string;
+  line_number: number;
+  column: number;
+  stub_type: string;
+  severity: string;
+  context: string;
+  suggestion?: string;
+}
+
+// Legacy interface for backward compatibility with UI
 interface CTPAnalysis {
   ctp_version: string;
   explanation_id: string;
@@ -56,6 +168,7 @@ interface CTPAnalysis {
 let diagnosticCollection: vscode.DiagnosticCollection;
 let outputChannel: vscode.OutputChannel;
 let statusBarItem: vscode.StatusBarItem;
+let mcpClient: MCPClient;
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('CodeTruth extension activated');
@@ -76,6 +189,30 @@ export function activate(context: vscode.ExtensionContext) {
   diagnosticCollection = vscode.languages.createDiagnosticCollection('codetruth');
   context.subscriptions.push(diagnosticCollection);
 
+  // Initialize MCP client
+  const config = vscode.workspace.getConfiguration('codetruth');
+  const mcpServerPath = config.get<string>('mcpServerPath', 'ctp-mcp');
+  mcpClient = new MCPClient(mcpServerPath);
+
+  // Start MCP server
+  mcpClient.start()
+    .then(() => {
+      outputChannel.appendLine('MCP server started successfully');
+    })
+    .catch((error) => {
+      outputChannel.appendLine(`Failed to start MCP server: ${error}`);
+      vscode.window.showErrorMessage(`Failed to start CodeTruth MCP server: ${error}`);
+    });
+
+  // Handle MCP client errors
+  mcpClient.on('error', (error) => {
+    outputChannel.appendLine(`MCP client error: ${error}`);
+  });
+
+  mcpClient.on('exit', ({ code, signal }) => {
+    outputChannel.appendLine(`MCP server exited: code=${code}, signal=${signal}`);
+  });
+
   // Register commands
   const analyzeFile = vscode.commands.registerCommand('codetruth.analyzeFile', async () => {
     const editor = vscode.window.activeTextEditor;
@@ -94,37 +231,32 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
+    const cwd = workspaceFolders[0].uri.fsPath;
+    const projectName = path.basename(cwd);
+
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
         title: 'Analyzing workspace...',
         cancellable: true,
       },
-      async (progress: vscode.Progress<{ message?: string; increment?: number }>, token: vscode.CancellationToken) => {
-        const files = await vscode.workspace.findFiles(
-          '**/*.{py,js,ts,tsx,rs,go,java}',
-          '**/node_modules/**'
-        );
+      async (progress, token) => {
+        try {
+          const result = await mcpClient.callTool('analyze_codebase', {
+            root_path: cwd,
+            project_name: projectName,
+            project_purpose: 'Code analysis',
+          }) as AnalyzeCodebaseOutput;
 
-        let analyzed = 0;
-        for (const file of files) {
-          if (token.isCancellationRequested) break;
+          outputChannel.appendLine(JSON.stringify(result, null, 2));
+          outputChannel.show();
 
-          progress.report({
-            message: path.basename(file.fsPath),
-            increment: 100 / files.length,
-          });
-
-          try {
-            const document = await vscode.workspace.openTextDocument(file);
-            await analyzeDocument(document, false);
-            analyzed++;
-          } catch (e) {
-            outputChannel.appendLine(`Error analyzing ${file.fsPath}: ${e}`);
-          }
+          vscode.window.showInformationMessage(
+            `Analyzed ${result.total_files} files: ${result.total_violations} violations, ${result.redundancies.length} redundancies found.`
+          );
+        } catch (error) {
+          vscode.window.showErrorMessage(`Workspace analysis failed: ${error}`);
         }
-
-        vscode.window.showInformationMessage(`Analyzed ${analyzed} files`);
       }
     );
   });
@@ -137,7 +269,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const cwd = workspaceFolders[0].uri.fsPath;
-    
+
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -146,10 +278,14 @@ export function activate(context: vscode.ExtensionContext) {
       },
       async () => {
         try {
-          const result = await runCTPCommand(['check', '--policies', '.ctp/policies/', '.'], cwd);
-          outputChannel.appendLine(result);
-          outputChannel.show();
-          vscode.window.showInformationMessage('Policy check complete. See output for details.');
+          const result = await getComplianceAnalysis(cwd);
+          if (result) {
+            outputChannel.appendLine(JSON.stringify(result, null, 2));
+            outputChannel.show();
+            vscode.window.showInformationMessage(
+              `Policy check complete: ${result.total_violations} violations found. See output for details.`
+            );
+          }
         } catch (error) {
           vscode.window.showErrorMessage(`Policy check failed: ${error}`);
         }
@@ -178,11 +314,45 @@ export function activate(context: vscode.ExtensionContext) {
     panel.webview.html = getExplanationHtml(analysis);
   });
 
-  context.subscriptions.push(analyzeFile, analyzeWorkspace, checkPolicies, showExplanation);
+  const detectStubs = vscode.commands.registerCommand('codetruth.detectStubs', async () => {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+      vscode.window.showWarningMessage('No workspace open');
+      return;
+    }
+
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Detecting stubs and TODOs...',
+        cancellable: true,
+      },
+      async (progress, token) => {
+        try {
+          const result = await mcpClient.callTool('detect_stubs', {
+            path: workspaceFolders[0].uri.fsPath
+          }) as DetectStubsOutput;
+
+          outputChannel.appendLine(`Found ${result.total_stubs_found} stubs (${result.stubs_by_severity.critical} critical)`);
+          outputChannel.show();
+
+          if (result.has_critical_stubs) {
+            vscode.window.showWarningMessage(`Found ${result.stubs_by_severity.critical} critical stubs. See output for details.`);
+          } else {
+            vscode.window.showInformationMessage(`Found ${result.total_stubs_found} stubs.`);
+          }
+        } catch (error) {
+          vscode.window.showErrorMessage(`Stub detection failed: ${error}`);
+        }
+      }
+    );
+  });
+
+  context.subscriptions.push(analyzeFile, analyzeWorkspace, checkPolicies, showExplanation, detectStubs);
 
   // Watch for file saves if enabled
-  const config = vscode.workspace.getConfiguration('codetruth');
-  if (config.get('analyzeOnSave')) {
+  const settings = vscode.workspace.getConfiguration('codetruth');
+  if (settings.get('analyzeOnSave')) {
     context.subscriptions.push(
       vscode.workspace.onDidSaveTextDocument(async (document: vscode.TextDocument) => {
         if (isSupportedLanguage(document.languageId)) {
@@ -229,12 +399,18 @@ async function analyzeDocument(document: vscode.TextDocument, showNotification =
 }
 
 async function getAnalysis(document: vscode.TextDocument): Promise<CTPAnalysis | undefined> {
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  const cwd = workspaceFolders?.[0]?.uri.fsPath || path.dirname(document.fileName);
+  if (!mcpClient.isRunning()) {
+    vscode.window.showErrorMessage('CodeTruth MCP server is not running');
+    return undefined;
+  }
 
   try {
-    const result = await runCTPCommand(['explain', document.fileName, '--format', 'json'], cwd);
-    return JSON.parse(result) as CTPAnalysis;
+    const result = await mcpClient.callTool('analyze_file', {
+      file_path: document.fileName
+    }) as AnalyzeFileOutput;
+
+    // Map MCP output to legacy CTPAnalysis interface
+    return mapToCTPAnalysis(result, document.fileName);
   } catch (error) {
     outputChannel.appendLine(`Analysis error: ${error}`);
     vscode.window.showErrorMessage(`Analysis failed: ${error}`);
@@ -242,16 +418,79 @@ async function getAnalysis(document: vscode.TextDocument): Promise<CTPAnalysis |
   }
 }
 
-function runCTPCommand(args: string[], cwd: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    cp.exec(`ctp ${args.join(' ')}`, { cwd }, (error: Error | null, stdout: string, stderr: string) => {
-      if (error) {
-        reject(stderr || error.message);
-      } else {
-        resolve(stdout);
-      }
-    });
-  });
+function mapToCTPAnalysis(mcpOutput: AnalyzeFileOutput, filePath: string): CTPAnalysis {
+  return {
+    ctp_version: '0.1.0',
+    explanation_id: '',
+    module: {
+      name: path.basename(filePath),
+      path: filePath,
+      language: mcpOutput.language,
+      lines_of_code: mcpOutput.lines_of_code,
+      complexity_score: mcpOutput.complexity_score,
+    },
+    intent: {
+      declared_intent: '',
+      inferred_intent: mcpOutput.inferred_intent,
+      confidence: mcpOutput.intent_confidence,
+    },
+    behavior: {
+      actual_behavior: mcpOutput.side_effects.join(', ') || 'No side effects detected',
+      side_effects: mcpOutput.side_effects.map(se => ({
+        effect_type: 'unknown',
+        description: se,
+        risk_level: 'low',
+      })),
+    },
+    drift: {
+      drift_detected: mcpOutput.drift_detected,
+      drift_severity: mcpOutput.drift_detected ? 'HIGH' : 'NONE',
+      drift_details: mcpOutput.drift_details ? [{
+        drift_type: 'semantic',
+        expected: 'declared intent',
+        actual: mcpOutput.inferred_intent,
+        location: { file: filePath, line_start: 1, line_end: mcpOutput.lines_of_code },
+        remediation: mcpOutput.drift_details,
+      }] : [],
+    },
+    policies: {
+      policy_results: mcpOutput.violations.map(v => ({
+        policy_id: v.policy,
+        policy_name: v.policy,
+        status: 'violated',
+        violations: [{
+          rule: v.rule_id,
+          severity: v.severity,
+          message: v.description,
+          location: {
+            file: v.file_path,
+            line_start: v.line_number || 1,
+            line_end: v.line_number || 1,
+          },
+        }],
+      })),
+    },
+  };
+}
+
+async function getComplianceAnalysis(path: string): Promise<CheckComplianceOutput | undefined> {
+  if (!mcpClient.isRunning()) {
+    vscode.window.showErrorMessage('CodeTruth MCP server is not running');
+    return undefined;
+  }
+
+  try {
+    const config = vscode.workspace.getConfiguration('codetruth');
+    const policiesPath = config.get<string>('policiesPath', '.ctp/policies/');
+
+    return await mcpClient.callTool('check_compliance', {
+      path,
+      policy_dir: policiesPath,
+    }) as CheckComplianceOutput;
+  } catch (error) {
+    outputChannel.appendLine(`Compliance check error: ${error}`);
+    throw error;
+  }
 }
 
 function updateDiagnostics(document: vscode.TextDocument, analysis: CTPAnalysis) {
@@ -400,8 +639,14 @@ function getExplanationHtml(analysis: CTPAnalysis): string {
 </html>`;
 }
 
-export function deactivate() {
+export async function deactivate() {
   console.log('CodeTruth extension deactivated');
+  
+  // Stop MCP server
+  if (mcpClient) {
+    await mcpClient.stop();
+  }
+  
   diagnosticCollection?.dispose();
   outputChannel?.dispose();
   statusBarItem?.dispose();

@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeTruth Intelligence Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #334155;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            color: #60a5fa;
+        }
+        
+        .subtitle {
+            color: #94a3b8;
+            margin-top: 0.5rem;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: #1e293b;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #60a5fa;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .stat-trend {
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        
+        .trend-up { color: #ef4444; }
+        .trend-down { color: #10b981; }
+        
+        /* Priority Sections */
+        .priority-section {
+            margin-bottom: 2rem;
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .priority-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .priority-critical { background: #ef4444; color: white; }
+        .priority-high { background: #f97316; color: white; }
+        .priority-medium { background: #f59e0b; color: white; }
+        .priority-low { background: #10b981; color: white; }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        /* Insights Cards */
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1rem;
+        }
+        
+        .insight-card {
+            background: #1e293b;
+            padding: 1.25rem;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .insight-card.critical { border-left-color: #ef4444; }
+        .insight-card.high { border-left-color: #f97316; }
+        .insight-card.medium { border-left-color: #f59e0b; }
+        .insight-card.low { border-left-color: #10b981; }
+        
+        .insight-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+        
+        .insight-title {
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+        
+        .insight-category {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+        
+        .insight-description {
+            color: #cbd5e1;
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .insight-files {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        .actionable-badge {
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            background: #3b82f6;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            margin-left: 0.5rem;
+        }
+        
+        /* Diff Visualization */
+        .diff-section {
+            background: #1e293b;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        
+        .diff-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .diff-item {
+            text-align: center;
+        }
+        
+        .diff-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .diff-value.added { color: #10b981; }
+        .diff-value.removed { color: #ef4444; }
+        .diff-value.modified { color: #f59e0b; }
+        
+        .diff-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+        
+        .diff-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .diff-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid #334155;
+            font-size: 0.875rem;
+        }
+        
+        .diff-item-row:last-child {
+            border-bottom: none;
+        }
+        
+        .diff-file {
+            color: #e2e8f0;
+        }
+        
+        .diff-stats {
+            color: #94a3b8;
+        }
+        
+        /* Severity Visualization */
+        .severity-section {
+            background: #1e293b;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        
+        .severity-bar {
+            display: flex;
+            height: 24px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        .severity-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            transition: width 0.3s ease;
+        }
+        
+        .severity-critical { background: #ef4444; }
+        .severity-high { background: #f97316; }
+        .severity-medium { background: #f59e0b; }
+        .severity-low { background: #10b981; }
+        
+        .severity-legend {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        /* Feature Tracking */
+        .features-section {
+            background: #1e293b;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        
+        .feature-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-stat {
+            text-align: center;
+            padding: 1rem;
+            background: #334155;
+            border-radius: 8px;
+        }
+        
+        .feature-stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #60a5fa;
+        }
+        
+        .feature-stat-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+        
+        /* Bug Tracking */
+        .bugs-section {
+            background: #1e293b;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        
+        .bug-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .bug-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .bug-item:last-child {
+            border-bottom: none;
+        }
+        
+        .bug-severity {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        
+        .bug-severity.critical { background: #ef4444; color: white; }
+        .bug-severity.high { background: #f97316; color: white; }
+        .bug-severity.medium { background: #f59e0b; color: white; }
+        .bug-severity.low { background: #10b981; color: white; }
+        
+        .bug-content {
+            flex: 1;
+        }
+        
+        .bug-description {
+            font-size: 0.875rem;
+            color: #e2e8f0;
+            margin-bottom: 0.25rem;
+        }
+        
+        .bug-location {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.625rem 1.25rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #2563eb;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #64748b;
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* Drift Visualization */
+        .drift-section {
+            background: #1e293b;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        
+        .drift-gauge {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .drift-value {
+            font-size: 3rem;
+            font-weight: 700;
+        }
+        
+        .drift-value.low { color: #10b981; }
+        .drift-value.medium { color: #f59e0b; }
+        .drift-value.high { color: #f97316; }
+        .drift-value.critical { color: #ef4444; }
+        
+        .drift-bar {
+            flex: 1;
+            height: 12px;
+            background: #334155;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .drift-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.3s ease;
+        }
+        
+        .drift-fill.low { background: #10b981; }
+        .drift-fill.medium { background: #f59e0b; }
+        .drift-fill.high { background: #f97316; }
+        .drift-fill.critical { background: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 CodeTruth Intelligence Dashboard</h1>
+            <p class="subtitle">Hierarchical insights with priority-based groupings</p>
+        </header>
+        
+        <div class="controls">
+            <button class="btn" onclick="location.reload()">🔄 Refresh</button>
+            <button class="btn btn-danger" onclick="clearResults()">🗑️ Clear Results</button>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ total_projects }}</div>
+                <div class="stat-label">Projects</div>
+                <div class="stat-trend">Active monitoring</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ total_violations }}</div>
+                <div class="stat-label">Violations</div>
+                <div class="stat-trend trend-up">⚠️ Needs attention</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ total_files }}</div>
+                <div class="stat-label">Files Analyzed</div>
+                <div class="stat-trend">Total coverage</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ avg_drift | round(precision=1) }}%</div>
+                <div class="stat-label">Avg Drift</div>
+                <div class="stat-trend {% if avg_drift > 20 %}trend-up{% else %}trend-down{% endif %}">
+                    {% if avg_drift > 20 %}⚠️ High{% else %}✓ Acceptable{% endif %}
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ total_bugs }}</div>
+                <div class="stat-label">Bugs Found</div>
+                <div class="stat-trend {% if total_bugs > 10 %}trend-up{% else %}trend-down{% endif %}">
+                    {% if total_bugs > 10 %}⚠️ Critical{% else %}✓ Managed{% endif %}
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ total_incomplete }}</div>
+                <div class="stat-label">Incomplete Features</div>
+                <div class="stat-trend">Work in progress</div>
+            </div>
+        </div>
+        
+        {% if results %}
+        <!-- Priority-Based Insights -->
+        {% for priority in ["critical", "high", "medium", "low"] %}
+        {% if insights_by_priority.get(priority) %}
+        <div class="priority-section">
+            <div class="section-header">
+                <span class="priority-badge priority-{{ priority }}">{{ priority }}</span>
+                <h2 class="section-title">{{ insights_by_priority[priority] | length }} Insights</h2>
+            </div>
+            <div class="insights-grid">
+                {% for insight in insights_by_priority[priority] %}
+                <div class="insight-card {{ priority }}">
+                    <div class="insight-header">
+                        <div>
+                            <div class="insight-title">{{ insight.title }}</div>
+                            <div class="insight-category">{{ insight.category }}</div>
+                        </div>
+                        {% if insight.actionable %}
+                        <span class="actionable-badge">Actionable</span>
+                        {% endif %}
+                    </div>
+                    <div class="insight-description">{{ insight.description }}</div>
+                    <div class="insight-files">
+                        {{ insight.affected_files | length }} files affected
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        
+        <!-- Drift Visualization -->
+        <div class="drift-section">
+            <h2 class="section-title" style="margin-bottom: 1rem;">📊 Drift Analysis</h2>
+            <div class="drift-gauge">
+                <div class="drift-value {% if avg_drift < 10 %}low{% elif avg_drift < 25 %}medium{% elif avg_drift < 50 %}high{% else %}critical{% endif %}">
+                    {{ avg_drift | round(precision=1) }}%
+                </div>
+                <div class="drift-bar">
+                    <div class="drift-fill {% if avg_drift < 10 %}low{% elif avg_drift < 25 %}medium{% elif avg_drift < 50 %}high{% else %}critical{% endif %}" style="width: {{ avg_drift }}%"></div>
+                </div>
+            </div>
+            <p style="color: #94a3b8; font-size: 0.875rem; margin-top: 0.75rem;">
+                {% if avg_drift < 10 %}Excellent: Code closely matches declared intent{% elif avg_drift < 25 %}Good: Minor drift detected{% elif avg_drift < 50 %}Warning: Significant drift from intent{% else %}Critical: Major drift detected{% endif %}
+            </p>
+        </div>
+        
+        <!-- Severity Breakdown -->
+        <div class="severity-section">
+            <h2 class="section-title" style="margin-bottom: 1rem;">🎯 Severity Breakdown</h2>
+            {% set total = aggregated_severity.values() | sum %}
+            {% if total > 0 %}
+            <div class="severity-bar">
+                {% for severity, count in aggregated_severity.items() %}
+                {% set percentage = (count / total * 100) %}
+                <div class="severity-segment severity-{{ severity }}" style="width: {{ percentage }}%">
+                    {{ count }}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="severity-legend">
+                {% for severity, count in aggregated_severity.items() %}
+                <div class="legend-item">
+                    <div class="legend-color" style="background: {% if severity == 'critical' %}#ef4444{% elif severity == 'high' %}#f97316{% elif severity == 'medium' %}#f59e0b{% else %}#10b981{% endif %}"></div>
+                    <span>{{ severity | capitalize }}: {{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="color: #94a3b8;">No violations detected</p>
+            {% endif %}
+        </div>
+        
+        <!-- Features Shipped -->
+        <div class="features-section">
+            <h2 class="section-title" style="margin-bottom: 1rem;">🚀 Features Shipped</h2>
+            <div class="feature-stats">
+                <div class="feature-stat">
+                    <div class="feature-stat-value">{{ aggregated_features.get("major", 0) }}</div>
+                    <div class="feature-stat-label">Major</div>
+                </div>
+                <div class="feature-stat">
+                    <div class="feature-stat-value">{{ aggregated_features.get("minor", 0) }}</div>
+                    <div class="feature-stat-label">Minor</div>
+                </div>
+                <div class="feature-stat">
+                    <div class="feature-stat-value">{{ aggregated_features.get("patch", 0) }}</div>
+                    <div class="feature-stat-label">Patch</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Diff Changes -->
+        {% for result in results %}
+        {% if result.diff_changes %}
+        <div class="diff-section">
+            <h2 class="section-title" style="margin-bottom: 1rem;">📝 Diff Changes - {{ result.project_name }}</h2>
+            <div class="diff-summary">
+                <div class="diff-item">
+                    <div class="diff-value added">{{ result.diff_changes | selectattr("change_type", "equalto", "added") | list | length }}</div>
+                    <div class="diff-label">Added</div>
+                </div>
+                <div class="diff-item">
+                    <div class="diff-value modified">{{ result.diff_changes | selectattr("change_type", "equalto", "modified") | list | length }}</div>
+                    <div class="diff-label">Modified</div>
+                </div>
+                <div class="diff-item">
+                    <div class="diff-value removed">{{ result.diff_changes | selectattr("change_type", "equalto", "deleted") | list | length }}</div>
+                    <div class="diff-label">Deleted</div>
+                </div>
+            </div>
+            <div class="diff-list">
+                {% for change in result.diff_changes %}
+                <div class="diff-item-row">
+                    <span class="diff-file">{{ change.file_path }}</span>
+                    <span class="diff-stats">
+                        {% if change.change_type == "added" %}+{{ change.lines_added }}{% elif change.change_type == "deleted" %}-{{ change.lines_removed }}{% else %}±{{ change.lines_added }}/{{ change.lines_removed }}{% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        
+        <!-- Bugs Found -->
+        {% for result in results %}
+        {% if result.bugs_found %}
+        <div class="bugs-section">
+            <h2 class="section-title" style="margin-bottom: 1rem;">🐛 Bugs Found - {{ result.project_name }}</h2>
+            <div class="bug-list">
+                {% for bug in result.bugs_found %}
+                <div class="bug-item">
+                    <span class="bug-severity {{ bug.severity }}">{{ bug.severity }}</span>
+                    <div class="bug-content">
+                        <div class="bug-description">{{ bug.description }}</div>
+                        <div class="bug-location">{{ bug.file_path }}:{{ bug.line_number }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📊</div>
+            <p>No analysis results yet.</p>
+            <p style="margin-top: 0.5rem;">Results will appear here after CI/CD runs or manual analysis.</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        async function clearResults() {
+            if (confirm('Are you sure you want to clear all results?')) {
+                await fetch('/api/results/clear', { method: 'POST' });
+                location.reload();
+            }
+        }
+        
+        // Auto-refresh every 30 seconds
+        setTimeout(() => location.reload(), 30000);
+    </script>
+</body>
+</html>
