@@ -15,7 +15,7 @@ ctp-core = { path = "../ctp-core" }
 ctp-utils = { path = "../ctp-utils" }
 ctp-policy = { path = "../ctp-policy" }
 ctp-drift = { path = "../ctp-drift" }
-ctp-parser = { path = "../ctp-parser" }
+ctp-parser = { path = "../ctp-parser", features = ["all-languages"] }
 
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -30,6 +30,7 @@ rmcp = { version = "0.2", features = ["server", "transport-async-rw", "macros"] 
 
 # Async runtime
 futures = "0.3"
+tokio-util = { version = "0.7", features = ["full"] }
 
 # File watching (for incremental analysis)
 notify = { version = "6.0", optional = true }

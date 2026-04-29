@@ -76,6 +76,13 @@ impl CodeTruthMCPServer {
                 let output = self.tool_handler.detect_drift(input).await?;
                 serde_json::to_value(output)?
             }
+            "detect_stubs" => {
+                let input: DetectStubsInput = serde_json::from_value(
+                    request.arguments.map(|a| serde_json::Value::Object(a)).unwrap_or_default()
+                )?;
+                let output = self.tool_handler.detect_stubs(input).await?;
+                serde_json::to_value(output)?
+            }
             "explain_violation" => {
                 let input: ExplainViolationInput = serde_json::from_value(
                     request.arguments.map(|a| serde_json::Value::Object(a)).unwrap_or_default()
@@ -192,6 +199,35 @@ impl ServerHandler for CodeTruthMCPServer {
                             "type": "array",
                             "description": "Optional specific drift types to detect",
                             "items": { "type": "string" }
+                        }
+                    },
+                    "required": ["path"]
+                })),
+            ),
+            Tool::new(
+                Cow::Borrowed("detect_stubs"),
+                Cow::Borrowed("Detect stubs, TODOs, placeholders, and unimplemented code in files or directories. Returns findings by severity with line numbers and suggested fixes. Use this to audit AI-generated code for incomplete implementations before production."),
+                Self::to_json_object(json!({
+                    "type": "object",
+                    "properties": {
+                        "path": {
+                            "type": "string",
+                            "description": "Absolute path to file or directory to analyze for stubs"
+                        },
+                        "include_patterns": {
+                            "type": "array",
+                            "description": "Optional glob patterns for files to include (e.g., ['**/*.rs', '**/*.ts'])",
+                            "items": { "type": "string" }
+                        },
+                        "exclude_patterns": {
+                            "type": "array",
+                            "description": "Optional glob patterns for files to exclude (e.g., ['**/tests/**', '**/vendor/**'])",
+                            "items": { "type": "string" }
+                        },
+                        "min_severity": {
+                            "type": "string",
+                            "description": "Optional minimum severity to report: 'low', 'medium', 'high', 'critical'. Default: 'low' (all)",
+                            "enum": ["low", "medium", "high", "critical"]
                         }
                     },
                     "required": ["path"]

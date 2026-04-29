@@ -237,3 +237,61 @@ pub struct CodebaseStats {
     pub average_complexity: f64,
     pub total_lines_of_code: usize,
 }
+
+/// Input for stub detection tool
+#[derive(Debug, Clone, Deserialize)]
+pub struct DetectStubsInput {
+    /// Path to file or directory to analyze for stubs
+    pub path: String,
+    /// Optional: include files matching these patterns
+    pub include_patterns: Option<Vec<String>>,
+    /// Optional: exclude files matching these patterns
+    pub exclude_patterns: Option<Vec<String>>,
+    /// Optional: minimum severity to report ("low", "medium", "high", "critical")
+    pub min_severity: Option<String>,
+}
+
+/// Output from stub detection
+#[derive(Debug, Clone, Serialize)]
+pub struct DetectStubsOutput {
+    /// Path that was analyzed
+    pub path: String,
+    /// Number of files analyzed
+    pub files_analyzed: usize,
+    /// Total stub/placeholder findings
+    pub total_stubs_found: usize,
+    /// Whether any critical stubs were found
+    pub has_critical_stubs: bool,
+    /// Stub counts by severity
+    pub stubs_by_severity: StubsBySeverity,
+    /// Detailed stub findings
+    pub findings: Vec<StubFindingDetail>,
+}
+
+/// Stub counts by severity
+#[derive(Debug, Clone, Serialize)]
+pub struct StubsBySeverity {
+    pub critical: usize,
+    pub high: usize,
+    pub medium: usize,
+    pub low: usize,
+}
+
+/// Individual stub finding detail
+#[derive(Debug, Clone, Serialize)]
+pub struct StubFindingDetail {
+    /// File path where stub was found
+    pub file_path: String,
+    /// Line number (1-indexed)
+    pub line_number: usize,
+    /// Column number (1-indexed)
+    pub column: usize,
+    /// Type of stub detected (TODO, FIXME, PLACEHOLDER, UNIMPLEMENTED, etc.)
+    pub stub_type: String,
+    /// Severity level
+    pub severity: String,
+    /// The matched pattern/context
+    pub context: String,
+    /// Suggested remediation
+    pub suggestion: Option<String>,
+}

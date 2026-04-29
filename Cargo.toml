@@ -28,6 +28,7 @@ members = [
     "crates/ctp-parser",
     "crates/ctp-drift",
     "crates/ctp-policy",
+    "crates/ctp-dashboard",
     "crates/ctp-llm",
     "crates/ctp-context",
     "crates/ctp-design",

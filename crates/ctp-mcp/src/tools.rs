@@ -4,31 +4,75 @@
 //! - analyze_file: Analyze a single file for intent, behavior, and drift
 //! - check_compliance: Check files against compliance policies
 //! - detect_drift: Detect drift between intent and implementation
+//! - detect_stubs: Detect stubs, TODOs, and placeholders in code
 //! - explain_violation: Get natural language explanation of violations
 //! - analyze_codebase: Analyze entire codebase for compliance and redundancies
 
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::Result;
 use ctp_core::{CodeTruthEngine, ExplanationGraph};
 use glob::Pattern;
 use sha2::{Digest, Sha256};
+use tokio::sync::Semaphore;
 use tracing::{debug, info, instrument, warn};
 
 use crate::cache::AnalysisCache;
+use crate::metrics::{MetricsCollector, TimingGuard};
 use crate::models::*;
+use crate::security::{sanitize_path, check_file_size, validate_glob_pattern, ResourceLimits};
+
+/// Default concurrent analysis limit
+const MAX_CONCURRENT_ANALYSES: usize = 4;
+
+/// Default analysis timeout (used by integration layer)
+#[allow(dead_code)]
+const ANALYSIS_TIMEOUT: Duration = Duration::from_secs(300); // 5 minutes
 
 /// Tool handler for MCP server
 pub struct ToolHandler {
     engine: Arc<CodeTruthEngine>,
     cache: Arc<AnalysisCache>,
+    /// Semaphore to limit concurrent analyses
+    analysis_semaphore: Arc<Semaphore>,
+    /// Resource limits for batch operations
+    resource_limits: ResourceLimits,
+    /// Metrics collector for observability
+    metrics: Arc<MetricsCollector>,
 }
 
 impl ToolHandler {
     /// Create a new tool handler
     pub fn new(engine: Arc<CodeTruthEngine>, cache: Arc<AnalysisCache>) -> Self {
-        Self { engine, cache }
+        Self { 
+            engine, 
+            cache,
+            analysis_semaphore: Arc::new(Semaphore::new(MAX_CONCURRENT_ANALYSES)),
+            resource_limits: ResourceLimits::default(),
+            metrics: Arc::new(MetricsCollector::new()),
+        }
+    }
+
+    /// Create a tool handler with custom resource limits
+    pub fn with_limits(
+        engine: Arc<CodeTruthEngine>, 
+        cache: Arc<AnalysisCache>,
+        limits: ResourceLimits,
+    ) -> Self {
+        Self {
+            engine,
+            cache,
+            analysis_semaphore: Arc::new(Semaphore::new(MAX_CONCURRENT_ANALYSES)),
+            resource_limits: limits,
+            metrics: Arc::new(MetricsCollector::new()),
+        }
+    }
+
+    /// Get metrics snapshot
+    pub fn metrics(&self) -> crate::metrics::MetricsSnapshot {
+        self.metrics.snapshot()
     }
 
     /// Analyze a single file
@@ -481,11 +525,203 @@ impl ToolHandler {
         Ok(())
     }
 
+    /// Detect stubs, TODOs, and placeholders in code
+    #[instrument(skip(self), fields(path = %input.path))]
+    pub async fn detect_stubs(&self, input: DetectStubsInput) -> Result<DetectStubsOutput> {
+        let _timing = TimingGuard::new(&self.metrics);
+        self.metrics.record_request();
+
+        // Validate and sanitize the path
+        let sanitized_path = match sanitize_path(&input.path, None) {
+            Ok(path) => path,
+            Err(e) => {
+                self.metrics.record_failure();
+                return Err(e.into());
+            }
+        };
+
+        debug!("Detecting stubs in: {}", sanitized_path.display());
+
+        // Validate glob patterns if provided
+        if let Some(ref patterns) = input.include_patterns {
+            for pattern in patterns {
+                if let Err(e) = validate_glob_pattern(pattern) {
+                    self.metrics.record_failure();
+                    return Err(e.into());
+                }
+            }
+        }
+        if let Some(ref patterns) = input.exclude_patterns {
+            for pattern in patterns {
+                if let Err(e) = validate_glob_pattern(pattern) {
+                    self.metrics.record_failure();
+                    return Err(e.into());
+                }
+            }
+        }
+
+        // Acquire semaphore permit for concurrent limiting
+        let _permit = match self.analysis_semaphore.acquire().await {
+            Ok(p) => p,
+            Err(_) => {
+                self.metrics.record_failure();
+                anyhow::bail!("Failed to acquire analysis permit");
+            }
+        };
+
+        // Collect files to analyze
+        let mut files_to_analyze = Vec::new();
+        if sanitized_path.is_file() {
+            // Check file size
+            if let Err(e) = check_file_size(&sanitized_path) {
+                self.metrics.record_failure();
+                return Err(e.into());
+            }
+            files_to_analyze.push(sanitized_path.clone());
+        } else {
+            self.collect_files(&sanitized_path, &mut files_to_analyze, &input.include_patterns, &input.exclude_patterns).await?;
+            
+            // Check resource limits
+            if files_to_analyze.len() > self.resource_limits.max_files {
+                self.metrics.record_failure();
+                anyhow::bail!(
+                    "Too many files to analyze: {} exceeds limit of {}",
+                    files_to_analyze.len(),
+                    self.resource_limits.max_files
+                );
+            }
+        }
+
+        let mut all_findings: Vec<StubFindingDetail> = Vec::new();
+        let mut files_analyzed = 0;
+        let mut total_size: u64 = 0;
+        let mut stubs_by_severity = StubsBySeverity {
+            critical: 0,
+            high: 0,
+            medium: 0,
+            low: 0,
+        };
+
+        // Filter by minimum severity if provided
+        let min_severity = input.min_severity.as_ref().map(|s| s.to_lowercase());
+
+        for file_path in &files_to_analyze {
+            // Check file size
+            match check_file_size(file_path) {
+                Ok(size) => {
+                    total_size += size;
+                    if total_size > self.resource_limits.max_total_size {
+                        warn!("Total file size limit exceeded, stopping at {} files", files_analyzed);
+                        break;
+                    }
+                }
+                Err(e) => {
+                    warn!("Skipping file {}: {}", file_path.display(), e);
+                    continue;
+                }
+            }
+
+            match tokio::fs::read_to_string(file_path).await {
+                Ok(_content) => {
+                    files_analyzed += 1;
+                    let findings = self.engine.analyze_stubs(file_path);
+                    
+                    for finding in findings {
+                        // Map stub severity to string
+                        let severity_str = match finding.severity {
+                            ctp_drift::StubSeverity::Critical => "critical",
+                            ctp_drift::StubSeverity::High => "high",
+                            ctp_drift::StubSeverity::Medium => "medium",
+                            ctp_drift::StubSeverity::Low => "low",
+                        };
+
+                        // Filter by minimum severity
+                        if let Some(ref min) = min_severity {
+                            let should_include = match (min.as_str(), finding.severity) {
+                                ("critical", ctp_drift::StubSeverity::Critical) => true,
+                                ("critical", _) => false,
+                                ("high", ctp_drift::StubSeverity::Critical) |
+                                ("high", ctp_drift::StubSeverity::High) => true,
+                                ("high", _) => false,
+                                ("medium", ctp_drift::StubSeverity::Critical) |
+                                ("medium", ctp_drift::StubSeverity::High) |
+                                ("medium", ctp_drift::StubSeverity::Medium) => true,
+                                ("medium", _) => false,
+                                _ => true, // "low" or unknown includes all
+                            };
+                            if !should_include {
+                                continue;
+                            }
+                        }
+
+                        // Update severity counts
+                        match finding.severity {
+                            ctp_drift::StubSeverity::Critical => stubs_by_severity.critical += 1,
+                            ctp_drift::StubSeverity::High => stubs_by_severity.high += 1,
+                            ctp_drift::StubSeverity::Medium => stubs_by_severity.medium += 1,
+                            ctp_drift::StubSeverity::Low => stubs_by_severity.low += 1,
+                        }
+
+                        // Determine stub type from the matched pattern
+                        let stub_type = if finding.pattern_matched.to_lowercase().contains("todo") {
+                            "TODO"
+                        } else if finding.pattern_matched.to_lowercase().contains("fixme") {
+                            "FIXME"
+                        } else if finding.pattern_matched.to_lowercase().contains("placeholder") {
+                            "PLACEHOLDER"
+                        } else if finding.pattern_matched.to_lowercase().contains("unimplemented") {
+                            "UNIMPLEMENTED"
+                        } else {
+                            "STUB"
+                        };
+
+                        all_findings.push(StubFindingDetail {
+                            file_path: file_path.display().to_string(),
+                            line_number: finding.line,
+                            column: finding.column,
+                            stub_type: stub_type.to_string(),
+                            severity: severity_str.to_string(),
+                            context: finding.context,
+                            suggestion: if finding.suggestion.is_empty() { None } else { Some(finding.suggestion) },
+                        });
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to read file {}: {}", file_path.display(), e);
+                }
+            }
+        }
+
+        self.metrics.record_success();
+        self.metrics.record_files_analyzed(files_analyzed as u64);
+        self.metrics.record_stubs(all_findings.len() as u64);
+
+        let has_critical_stubs = stubs_by_severity.critical > 0;
+        let total_stubs_found = all_findings.len();
+
+        info!(
+            "Stub detection complete: {} files analyzed, {} stubs found ({} critical)",
+            files_analyzed, total_stubs_found, stubs_by_severity.critical
+        );
+
+        Ok(DetectStubsOutput {
+            path: input.path,
+            files_analyzed,
+            total_stubs_found,
+            has_critical_stubs,
+            stubs_by_severity,
+            findings: all_findings,
+        })
+    }
+
     /// Check if a file is a recognized source code file
+    /// Note: This is a broad filter for file collection. Actual parsing support
+    /// depends on ctp-parser feature flags. With all-languages feature enabled
+    /// in ctp-mcp, all listed languages are supported.
     fn is_source_file(&self, path: &Path) -> bool {
         if let Some(ext) = path.extension() {
             let ext = ext.to_string_lossy().to_lowercase();
-            matches!(ext.as_str(), 
+            matches!(ext.as_str(),
                 // Systems languages
                 "rs" | "c" | "h" | "cpp" | "cc" | "cxx" | "hpp" |
                 // Web
@@ -499,7 +735,7 @@ impl ToolHandler {
                 // Functional
                 "ml" | "mli" | "hs" | "lhs" | "elm" |
                 // Other
-                "go" | "rb" | "php" | "swift" | "m" | "mm" | "r" | "lua" | "pl" | "pm" |
+                "go" | "rb" | "swift" | "m" | "mm" | "r" | "lua" | "pl" | "pm" |
                 "sh" | "bash" | "zsh" | "ps1" | "sql" | "dart" | "zig" |
                 // Config/Data
                 "json" | "yaml" | "yml" | "toml" | "ini" | "xml"

@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use sha2::{Digest, Sha256};
 use tracing::{debug, info, instrument, warn};
 
-use ctp_drift::{DriftDetector, DriftConfig};
+use ctp_drift::{DriftDetector, DriftConfig, StubDetector};
 use ctp_parser::CTPParser;
 use ctp_policy::PolicyEngine;
 
@@ -74,6 +74,7 @@ pub struct CodeTruthEngine {
     #[allow(dead_code)] // Will be used for AST-based analysis in future
     parser: Arc<RwLock<CTPParser>>,
     drift_detector: DriftDetector,
+    stub_detector: StubDetector,
     policy_engine: Arc<RwLock<PolicyEngine>>,
     naming_detector: Arc<RwLock<NamingPatternDetector>>,
     detectors: DetectorsRegistry,
@@ -94,6 +95,7 @@ impl CodeTruthEngine {
         };
         
         let drift_detector = DriftDetector::new(DriftConfig::default());
+        let stub_detector = StubDetector::new();
         let policy_engine = Arc::new(RwLock::new(PolicyEngine::new()));
         let naming_detector = Arc::new(RwLock::new(NamingPatternDetector::new()));
         let detectors = DetectorsRegistry::new();
@@ -102,6 +104,7 @@ impl CodeTruthEngine {
             config,
             parser,
             drift_detector,
+            stub_detector,
             policy_engine,
             naming_detector,
             detectors,
@@ -558,6 +561,55 @@ impl CodeTruthEngine {
         })
     }
 
+    /// Analyze file(s) for stub/placeholder detection
+    /// 
+    /// Returns stub findings for each file analyzed.
+    /// This is a fast regex-based analysis that doesn't require full intent inference.
+    #[instrument(skip(self))]
+    pub fn analyze_stubs(&self, path: &Path) -> Vec<ctp_drift::StubFinding> {
+        let mut all_findings = Vec::new();
+        
+        if path.is_file() {
+            // Analyze single file
+            match std::fs::read_to_string(path) {
+                Ok(content) => {
+                    let findings = self.stub_detector.detect(&content, &path.display().to_string());
+                    all_findings.extend(findings);
+                }
+                Err(e) => {
+                    warn!("Failed to read file {} for stub analysis: {}", path.display(), e);
+                }
+            }
+        } else if path.is_dir() {
+            // Recursively analyze all files in directory
+            let entries = match std::fs::read_dir(path) {
+                Ok(entries) => entries,
+                Err(e) => {
+                    warn!("Failed to read directory {}: {}", path.display(), e);
+                    return all_findings;
+                }
+            };
+            
+            for entry in entries.flatten() {
+                let entry_path = entry.path();
+                if entry_path.is_file() {
+                    match std::fs::read_to_string(&entry_path) {
+                        Ok(content) => {
+                            let findings = self.stub_detector.detect(&content, &entry_path.display().to_string());
+                            all_findings.extend(findings);
+                        }
+                        Err(e) => {
+                            warn!("Failed to read file {}: {}", entry_path.display(), e);
+                        }
+                    }
+                }
+            }
+        }
+        
+        debug!("Stub analysis found {} findings in {}", all_findings.len(), path.display());
+        all_findings
+    }
+
     /// Detect programming language from file extension
     fn detect_language(&self, path: &Path) -> CTPResult<String> {
         let ext = path
@@ -573,7 +625,6 @@ impl CodeTruthEngine {
             "go" => "go",
             "java" => "java",
             "rb" => "ruby",
-            "php" => "php",
             "c" | "h" => "c",
             "cpp" | "cc" | "cxx" | "hpp" => "cpp",
             "cs" => "csharp",

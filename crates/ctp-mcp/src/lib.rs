@@ -10,6 +10,9 @@
 //! - Result caching for repeated queries
 //! - Lazy model loading for efficiency
 
+pub mod error;
+pub mod metrics;
+pub mod security;
 pub mod server;
 pub mod tools;
 pub mod cache;
